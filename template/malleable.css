@@ -47,17 +47,18 @@ body {
 }
 
 /* ============================================
-   PROGRESS BAR
+   PROGRESS BAR (inside frame)
    ============================================ */
 
 .progress {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 20px;
+  left: 20px;
+  right: 20px;
   height: 3px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   z-index: 100;
+  border-radius: 2px;
 }
 
 .progress-bar {
@@ -66,6 +67,16 @@ body {
   width: 0%;
   transition: width 0.3s ease-out;
   will-change: width;
+  border-radius: 2px;
+}
+
+/* Adjust for larger frame on desktop */
+@media (min-width: 768px) {
+  .progress {
+    top: 24px;
+    left: 24px;
+    right: 24px;
+  }
 }
 
 /* ============================================
@@ -167,7 +178,7 @@ body {
 .frame {
   position: absolute;
   inset: 0;
-  padding: 10px;
+  padding: 16px;
   background: var(--frame-colour, #4A90A4);
 }
 
@@ -184,7 +195,7 @@ body {
 /* Larger frame on bigger screens */
 @media (min-width: 768px) {
   .frame {
-    padding: 14px;
+    padding: 20px;
   }
 }
 
@@ -221,13 +232,14 @@ body {
 
 /* Masthead (logo) */
 .masthead {
-  padding: 20px 16px 12px;
+  padding: 24px 20px 16px;
   text-align: center;
 }
 
 .masthead img {
-  height: 32px;
+  height: 48px;
   width: auto;
+  max-width: 80%;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 

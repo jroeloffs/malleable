@@ -106,14 +106,14 @@
     .preview-frame {
       position: absolute;
       inset: 0;
-      border: 8px solid var(--frame-colour, #4A90A4);
+      border: 12px solid var(--frame-colour, #0E394F);
       pointer-events: none;
       z-index: 10;
     }
     
     .preview-media {
       position: absolute;
-      inset: 8px;
+      inset: 12px;
       overflow: hidden;
       background: #1a1a1a;
       display: flex;
@@ -137,7 +137,7 @@
     
     .preview-overlay {
       position: absolute;
-      inset: 8px;
+      inset: 12px;
       display: flex;
       flex-direction: column;
       z-index: 20;
@@ -145,18 +145,19 @@
     }
     
     .preview-logo {
-      padding: 12px 10px 6px;
+      padding: 16px 12px 8px;
       text-align: center;
     }
     
     .preview-logo img {
-      height: 20px;
+      height: 28px;
       width: auto;
+      max-width: 75%;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
     }
     
     .preview-logo .placeholder-logo {
-      font-size: 1rem;
+      font-size: 1.125rem;
       font-weight: 700;
       color: #fff;
       text-shadow: 0 1px 3px rgba(0,0,0,0.5);
@@ -255,6 +256,58 @@
       border-style: solid;
       border-color: #4A90A4;
       color: #fff;
+    }
+    
+    .file-input-btn-small {
+      padding: 8px;
+      font-size: 0.75rem;
+    }
+    
+    /* Logo selector */
+    .logo-selector {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .logo-btn-select {
+      flex: 1;
+      padding: 10px 8px;
+      background: #2a2a2a;
+      border: 2px solid #333;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .logo-btn-select.active {
+      border-color: #0C6C9C;
+      background: #1a2a35;
+    }
+    
+    .logo-preview {
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+    
+    .logo-preview.dark-bg {
+      background: #1a1a1a;
+      color: #fff;
+    }
+    
+    .logo-preview.light-bg {
+      background: #f0f0f0;
+      color: #1a1a1a;
+    }
+    
+    .logo-label {
+      font-size: 0.625rem;
+      color: #888;
     }
     
     /* Text inputs */
@@ -518,25 +571,36 @@
         </div>
         
         <div class="control-group">
-          <label class="control-label">Logo (white recommended for dark backgrounds)</label>
-          <div class="file-input-wrap">
-            <input type="file" id="logo-input" accept="image/png">
-            <div class="file-input-btn" id="logo-btn">Tap to select logo PNG</div>
+          <label class="control-label">Logo</label>
+          <div class="logo-selector">
+            <button class="logo-btn-select active" data-logo="white" onclick="selectLogo('white')">
+              <span class="logo-preview dark-bg">MALLEABLE</span>
+              <span class="logo-label">White (dark bg)</span>
+            </button>
+            <button class="logo-btn-select" data-logo="black" onclick="selectLogo('black')">
+              <span class="logo-preview light-bg">MALLEABLE</span>
+              <span class="logo-label">Black (light bg)</span>
+            </button>
           </div>
-          <p style="font-size: 0.75rem; color: #666; margin-top: 6px;">Use MALLEABLE-Logo-wh.png (white) for most covers</p>
+          <p style="font-size: 0.6875rem; color: #555; margin-top: 8px;">Or upload custom:</p>
+          <div class="file-input-wrap" style="margin-top: 4px;">
+            <input type="file" id="logo-input" accept="image/png">
+            <div class="file-input-btn file-input-btn-small" id="logo-btn">Choose PNG</div>
+          </div>
         </div>
         
         <div class="control-group">
           <label class="control-label">Frame colour</label>
           <div class="colour-row">
-            <input type="color" class="colour-input" id="colour-input" value="#4A90A4">
+            <input type="color" class="colour-input" id="colour-input" value="#0E394F">
             <div class="colour-presets" id="presets">
-              <div class="colour-preset active" style="background: #4A90A4;" data-colour="#4A90A4" title="Dusty Blue"></div>
-              <div class="colour-preset" style="background: #C4654A;" data-colour="#C4654A" title="Terracotta"></div>
-              <div class="colour-preset" style="background: #7A9A7E;" data-colour="#7A9A7E" title="Sage"></div>
-              <div class="colour-preset" style="background: #8B8680;" data-colour="#8B8680" title="Warm Grey"></div>
-              <div class="colour-preset" style="background: #D4A84B;" data-colour="#D4A84B" title="Gold"></div>
-              <div class="colour-preset" style="background: #6B5B7A;" data-colour="#6B5B7A" title="Plum"></div>
+              <div class="colour-preset active" style="background: #0E394F;" data-colour="#0E394F" title="Deep Teal"></div>
+              <div class="colour-preset" style="background: #0C6C9C;" data-colour="#0C6C9C" title="Ocean Blue"></div>
+              <div class="colour-preset" style="background: #2C77EE;" data-colour="#2C77EE" title="Bright Blue"></div>
+              <div class="colour-preset" style="background: #8E9F3A;" data-colour="#8E9F3A" title="Olive"></div>
+              <div class="colour-preset" style="background: #9C1C29;" data-colour="#9C1C29" title="Deep Red"></div>
+              <div class="colour-preset" style="background: #BC6C67;" data-colour="#BC6C67" title="Dusty Pink"></div>
+              <div class="colour-preset" style="background: #212121;" data-colour="#212121" title="Charcoal"></div>
             </div>
           </div>
         </div>
@@ -588,6 +652,31 @@
     const logoBtn = document.getElementById('logo-btn');
     const presets = document.getElementById('presets');
     
+    // Logo paths (relative to tools folder, adjust if needed)
+    const logoWhitePath = '../template/MALLEABLE-Logo-wh.png';
+    const logoBlackPath = '../template/MALLEABLE-Logo-bl.png';
+    let selectedLogo = 'white';
+    
+    // Logo selection
+    function selectLogo(type) {
+      selectedLogo = type;
+      
+      // Update button states
+      document.querySelectorAll('.logo-btn-select').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.logo === type);
+      });
+      
+      // Update preview
+      const path = type === 'white' ? logoWhitePath : logoBlackPath;
+      logoImg.src = path;
+      logoImg.style.display = 'block';
+      logoPlaceholder.style.display = 'none';
+      
+      // Clear custom upload state
+      logoBtn.textContent = 'Choose PNG';
+      logoBtn.classList.remove('has-file');
+    }
+    
     // Handle media upload
     mediaInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -611,7 +700,7 @@
       mediaBtn.classList.add('has-file');
     });
     
-    // Handle logo upload
+    // Handle custom logo upload (overrides selector)
     logoInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -620,6 +709,11 @@
       logoPlaceholder.style.display = 'none';
       logoBtn.textContent = file.name;
       logoBtn.classList.add('has-file');
+      
+      // Clear selector state
+      document.querySelectorAll('.logo-btn-select').forEach(btn => {
+        btn.classList.remove('active');
+      });
     });
     
     // Handle colour input
@@ -719,7 +813,8 @@
     });
     
     // Initialise
-    setColour('#4A90A4');
+    setColour('#0E394F');
+    selectLogo('white');
   </script>
 </body>
 </html>
