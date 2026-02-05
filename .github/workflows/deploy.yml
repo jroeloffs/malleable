@@ -1,0 +1,78 @@
+# Deploy Malleable to GitHub Pages
+# 
+# This workflow deploys the magazine to GitHub Pages for testing.
+# For production on jacoroeloffs.com, you can either:
+# 1. Keep using Pages at malleable.jacoroeloffs.com (add CNAME)
+# 2. Modify this to rsync/scp to your web server
+# 3. Use a webhook to trigger a pull on your server
+
+name: Deploy Malleable
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'template/**'
+      - 'editions/**'
+      - 'tools/**'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Sets permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create deployment structure
+        run: |
+          mkdir -p _site/malleable
+          cp -r template _site/malleable/
+          cp -r editions _site/malleable/
+          cp -r tools _site/malleable/
+          
+          # Create a simple index that redirects to latest edition
+          cat > _site/malleable/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="refresh" content="0; url=editions/edition-01/">
+            <title>Malleable</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="editions/edition-01/">latest edition</a>...</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site/malleable'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,21 @@
+{
+  "edition": "01",
+  "date": "February 2026",
+  "frameColour": "#4A90A4",
+  "published": null,
+  "sections": {
+    "made": {
+      "title": "Emmaus Cross",
+      "description": "Third commission for the same school"
+    },
+    "found": {
+      "title": "Structural Colour",
+      "description": "Colour without pigment",
+      "source": "https://example.com/article"
+    },
+    "thinking": {
+      "quote": "Some of us can't help but see the world as malleable.",
+      "author": "Srinivas Rao"
+    }
+  }
+}
