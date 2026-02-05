@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Malleable Cover Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -15,86 +15,124 @@
     
     html, body {
       height: 100%;
+      overflow: hidden;
     }
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: #111;
       color: #fff;
-      overflow-x: hidden;
     }
     
     /* ============================================
-       LAYOUT
+       MAIN LAYOUT
        ============================================ */
     
     .app {
-      min-height: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
     }
     
-    header {
-      padding: 16px;
-      border-bottom: 1px solid #333;
+    /* Header */
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 12px 16px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      flex-shrink: 0;
     }
     
-    header h1 {
-      font-size: 1rem;
+    .header h1 {
+      font-size: 0.875rem;
       font-weight: 600;
     }
     
-    .mode-toggle {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .mode-btn {
-      padding: 6px 12px;
-      background: transparent;
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: #888;
-      font-size: 0.75rem;
+    .screenshot-btn {
+      padding: 8px 16px;
+      background: #0C6C9C;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
       cursor: pointer;
     }
     
-    .mode-btn.active {
-      background: #333;
-      color: #fff;
-      border-color: #555;
+    .screenshot-btn:active {
+      background: #0a5a82;
     }
     
-    main {
+    /* Main area */
+    .main {
       flex: 1;
       display: flex;
-      flex-direction: column;
+      overflow: hidden;
     }
     
-    /* ============================================
-       PREVIEW SECTION
-       ============================================ */
-    
-    .preview-section {
+    /* Preview area */
+    .preview-area {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
       background: #0a0a0a;
+      padding: 16px;
+      overflow: hidden;
     }
+    
+    /* Controls panel */
+    .controls-panel {
+      width: 280px;
+      background: #1a1a1a;
+      border-left: 1px solid #333;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    
+    /* Mobile: controls below */
+    @media (max-width: 700px) {
+      .main {
+        flex-direction: column;
+      }
+      
+      .preview-area {
+        flex: none;
+        height: 55%;
+        padding: 12px;
+      }
+      
+      .controls-panel {
+        width: 100%;
+        flex: 1;
+        border-left: none;
+        border-top: 1px solid #333;
+      }
+    }
+    
+    /* ============================================
+       PREVIEW
+       ============================================ */
     
     .preview-container {
       position: relative;
       width: 100%;
-      max-width: 280px;
+      height: 100%;
+      max-width: 270px;
+      max-height: 480px;
       aspect-ratio: 9 / 16;
     }
     
-    /* The actual preview box */
+    @media (min-width: 700px) {
+      .preview-container {
+        max-width: 320px;
+        max-height: 568px;
+      }
+    }
+    
     .preview {
       position: relative;
       width: 100%;
@@ -103,17 +141,24 @@
       overflow: hidden;
     }
     
+    /* Frame */
     .preview-frame {
       position: absolute;
       inset: 0;
-      border: 12px solid var(--frame-colour, #0E394F);
+      border-style: solid;
+      border-color: var(--frame-colour, #0E394F);
+      border-width: var(--frame-width, 12px);
       pointer-events: none;
       z-index: 10;
     }
     
+    /* Media */
     .preview-media {
       position: absolute;
-      inset: 12px;
+      top: var(--frame-width, 12px);
+      left: var(--frame-width, 12px);
+      right: var(--frame-width, 12px);
+      bottom: var(--frame-width, 12px);
       overflow: hidden;
       background: #1a1a1a;
       display: flex;
@@ -135,100 +180,201 @@
       padding: 20px;
     }
     
+    /* Overlay */
     .preview-overlay {
       position: absolute;
-      inset: 12px;
+      top: var(--frame-width, 12px);
+      left: var(--frame-width, 12px);
+      right: var(--frame-width, 12px);
+      bottom: var(--frame-width, 12px);
       display: flex;
       flex-direction: column;
       z-index: 20;
       pointer-events: none;
     }
     
+    /* Logo */
     .preview-logo {
-      padding: 16px 12px 8px;
-      text-align: center;
+      padding: var(--logo-padding, 16px) 12px 8px;
+      text-align: var(--logo-align, center);
     }
     
     .preview-logo img {
-      height: 28px;
+      height: var(--logo-size, 28px);
       width: auto;
-      max-width: 75%;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+      max-width: 85%;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
     }
     
     .preview-logo .placeholder-logo {
-      font-size: 1.125rem;
+      font-size: var(--logo-size, 28px);
       font-weight: 700;
       color: #fff;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-      letter-spacing: 0.15em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      letter-spacing: 0.12em;
+      line-height: 1;
     }
     
+    /* Spacer */
     .preview-spacer {
       flex: 1;
     }
     
+    /* Articles */
     .preview-articles {
-      padding: 10px;
-      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+      padding: var(--articles-padding, 12px);
+      background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 100%);
     }
     
     .preview-article {
-      font-size: 0.5rem;
+      font-size: var(--articles-size, 10px);
       font-weight: 600;
       color: #fff;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 4px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      letter-spacing: 0.03em;
+      margin-bottom: 6px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
     
+    .preview-article:last-child {
+      margin-bottom: 0;
+    }
+    
+    /* Meta */
     .preview-meta {
       display: flex;
       justify-content: space-between;
-      padding: 6px 10px;
-      font-size: 0.4rem;
-      color: rgba(255,255,255,0.7);
-      background: rgba(0,0,0,0.5);
+      padding: 8px var(--articles-padding, 12px);
+      font-size: calc(var(--articles-size, 10px) * 0.8);
+      color: rgba(255,255,255,0.8);
+      background: rgba(0,0,0,0.6);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     
     /* ============================================
-       CONTROLS SECTION
+       CONTROLS
        ============================================ */
     
-    .controls-section {
-      background: #1a1a1a;
-      border-top: 1px solid #333;
-      max-height: 50vh;
-      overflow-y: auto;
+    .control-section {
+      border-bottom: 1px solid #282828;
     }
     
-    .controls-section.expanded {
-      flex: 1;
-    }
-    
-    .control-group {
+    .control-section-header {
       padding: 12px 16px;
-      border-bottom: 1px solid #222;
-    }
-    
-    .control-group:last-child {
-      border-bottom: none;
-    }
-    
-    .control-label {
-      display: block;
       font-size: 0.6875rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: #666;
-      margin-bottom: 8px;
+      background: #151515;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
-    /* File inputs */
+    .control-section-header::after {
+      content: '▼';
+      font-size: 0.5rem;
+      transition: transform 0.2s;
+    }
+    
+    .control-section.collapsed .control-section-header::after {
+      transform: rotate(-90deg);
+    }
+    
+    .control-section.collapsed .control-section-body {
+      display: none;
+    }
+    
+    .control-section-body {
+      padding: 12px 16px;
+    }
+    
+    /* Control row */
+    .control-row {
+      margin-bottom: 12px;
+    }
+    
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #999;
+      margin-bottom: 6px;
+    }
+    
+    .control-value {
+      font-family: monospace;
+      color: #666;
+    }
+    
+    /* Slider */
+    .control-slider {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #333;
+      border-radius: 3px;
+      outline: none;
+    }
+    
+    .control-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #0C6C9C;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .control-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #0C6C9C;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    
+    /* Select */
+    .control-select {
+      width: 100%;
+      padding: 8px 10px;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.8125rem;
+    }
+    
+    /* Text input */
+    .control-input {
+      width: 100%;
+      padding: 8px 10px;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.8125rem;
+    }
+    
+    .control-input:focus {
+      outline: none;
+      border-color: #0C6C9C;
+    }
+    
+    /* File input */
     .file-input-wrap {
       position: relative;
     }
@@ -243,305 +389,188 @@
     .file-input-btn {
       display: block;
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       background: #2a2a2a;
       border: 1px dashed #444;
-      border-radius: 6px;
+      border-radius: 4px;
       color: #888;
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
       text-align: center;
     }
     
     .file-input-btn.has-file {
       border-style: solid;
-      border-color: #4A90A4;
-      color: #fff;
-    }
-    
-    .file-input-btn-small {
-      padding: 8px;
-      font-size: 0.75rem;
-    }
-    
-    /* Logo selector */
-    .logo-selector {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .logo-btn-select {
-      flex: 1;
-      padding: 10px 8px;
-      background: #2a2a2a;
-      border: 2px solid #333;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .logo-btn-select.active {
       border-color: #0C6C9C;
-      background: #1a2a35;
-    }
-    
-    .logo-preview {
-      font-size: 0.625rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      padding: 4px 8px;
-      border-radius: 3px;
-    }
-    
-    .logo-preview.dark-bg {
-      background: #1a1a1a;
       color: #fff;
     }
     
-    .logo-preview.light-bg {
-      background: #f0f0f0;
-      color: #1a1a1a;
-    }
-    
-    .logo-label {
-      font-size: 0.625rem;
-      color: #888;
-    }
-    
-    /* Text inputs */
-    .text-input {
-      width: 100%;
-      padding: 10px 12px;
-      background: #2a2a2a;
-      border: 1px solid #333;
-      border-radius: 4px;
-      color: #fff;
-      font-family: inherit;
-      font-size: 0.875rem;
-    }
-    
-    .text-input:focus {
-      outline: none;
-      border-color: #4A90A4;
-    }
-    
-    .text-input::placeholder {
-      color: #555;
-    }
-    
-    /* Colour picker */
+    /* Colour presets */
     .colour-row {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
     }
     
     .colour-input {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       padding: 0;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
       cursor: pointer;
       flex-shrink: 0;
     }
     
     .colour-presets {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       flex-wrap: wrap;
     }
     
     .colour-preset {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 4px;
       border: 2px solid transparent;
       cursor: pointer;
-      transition: transform 0.15s;
-    }
-    
-    .colour-preset:hover {
-      transform: scale(1.1);
     }
     
     .colour-preset.active {
       border-color: #fff;
     }
     
-    /* Two-column inputs */
-    .input-row {
+    /* Logo buttons */
+    .logo-buttons {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 8px;
     }
     
-    .input-row .text-input {
+    .logo-btn {
       flex: 1;
+      padding: 8px;
+      background: #2a2a2a;
+      border: 2px solid #333;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
     }
     
-    /* Articles list */
-    .articles-list {
+    .logo-btn.active {
+      border-color: #0C6C9C;
+    }
+    
+    .logo-btn-preview {
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 3px 6px;
+      border-radius: 2px;
+      display: inline-block;
+      margin-bottom: 2px;
+    }
+    
+    .logo-btn-preview.dark {
+      background: #1a1a1a;
+      color: #fff;
+    }
+    
+    .logo-btn-preview.light {
+      background: #e0e0e0;
+      color: #1a1a1a;
+    }
+    
+    .logo-btn-label {
+      font-size: 0.625rem;
+      color: #888;
+    }
+    
+    /* Articles inputs */
+    .articles-inputs {
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
     
     /* ============================================
-       EXPORT SECTION
+       FULLSCREEN MODE
        ============================================ */
     
-    .export-section {
-      padding: 16px;
-      background: #111;
-      border-top: 1px solid #333;
+    .app.fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
     }
     
-    .export-btn {
-      width: 100%;
-      padding: 14px;
-      background: #4A90A4;
-      border: none;
-      border-radius: 6px;
-      color: #fff;
-      font-family: inherit;
-      font-size: 0.9375rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    
-    .export-btn:active {
-      background: #3d7a8a;
-    }
-    
-    .export-note {
-      margin-top: 8px;
-      font-size: 0.75rem;
-      color: #666;
-      text-align: center;
-    }
-    
-    /* ============================================
-       DESKTOP ADJUSTMENTS
-       ============================================ */
-    
-    @media (min-width: 768px) {
-      main {
-        flex-direction: row;
-      }
-      
-      .preview-section {
-        flex: 1;
-      }
-      
-      .preview-container {
-        max-width: 320px;
-      }
-      
-      .controls-section {
-        width: 360px;
-        max-height: none;
-        border-top: none;
-        border-left: 1px solid #333;
-      }
-      
-      .export-section {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 360px;
-        border-left: 1px solid #333;
-      }
-      
-      .preview-frame {
-        border-width: 10px;
-      }
-      
-      .preview-media {
-        inset: 10px;
-      }
-      
-      .preview-overlay {
-        inset: 10px;
-      }
-      
-      .preview-logo img {
-        height: 26px;
-      }
-      
-      .preview-article {
-        font-size: 0.5625rem;
-      }
-    }
-    
-    /* ============================================
-       FULL SCREEN PREVIEW MODE
-       ============================================ */
-    
-    .app.fullscreen .controls-section,
-    .app.fullscreen .export-section,
-    .app.fullscreen header {
+    .app.fullscreen .header,
+    .app.fullscreen .controls-panel {
       display: none;
     }
     
-    .app.fullscreen .preview-section {
-      background: #000;
+    .app.fullscreen .preview-area {
+      padding: 0;
     }
     
     .app.fullscreen .preview-container {
       max-width: none;
+      max-height: none;
       width: 100%;
       height: 100%;
-      max-height: 100vh;
     }
     
-    .fullscreen-close {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      width: 40px;
-      height: 40px;
-      background: rgba(0,0,0,0.6);
-      border: none;
-      border-radius: 50%;
-      color: #fff;
-      font-size: 1.25rem;
-      cursor: pointer;
-      z-index: 100;
+    .app.fullscreen .preview {
+      border-radius: 0;
+    }
+    
+    /* Exit fullscreen hint */
+    .fullscreen-hint {
       display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.8);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: #888;
+      z-index: 10000;
+      animation: fadeOut 3s forwards;
+      animation-delay: 2s;
     }
     
-    .app.fullscreen .fullscreen-close {
+    .app.fullscreen .fullscreen-hint {
       display: block;
+    }
+    
+    @keyframes fadeOut {
+      to { opacity: 0; }
     }
   </style>
 </head>
 <body>
   <div class="app" id="app">
     
-    <header>
+    <header class="header">
       <h1>Cover Generator</h1>
-      <div class="mode-toggle">
-        <button class="mode-btn active" onclick="setMode('edit')">Edit</button>
-        <button class="mode-btn" onclick="setMode('preview')">Preview</button>
-      </div>
+      <button class="screenshot-btn" onclick="enterFullscreen()">Screenshot Mode</button>
     </header>
     
-    <main>
-      <section class="preview-section">
+    <main class="main">
+      <section class="preview-area">
         <div class="preview-container">
           <div class="preview" id="preview">
             <div class="preview-frame" id="frame"></div>
             <div class="preview-media" id="media-container">
               <div class="preview-placeholder" id="placeholder">
-                Tap to add cover image or video
+                Tap "Media" to add cover
               </div>
               <img id="preview-image" src="" alt="" style="display: none;">
               <video id="preview-video" src="" muted loop playsinline style="display: none;"></video>
             </div>
             <div class="preview-overlay">
-              <div class="preview-logo">
+              <div class="preview-logo" id="logo-container">
                 <img id="logo-img" src="" alt="MALLEABLE" style="display: none;">
                 <span class="placeholder-logo" id="logo-placeholder">MALLEABLE</span>
               </div>
@@ -560,125 +589,159 @@
         </div>
       </section>
       
-      <section class="controls-section" id="controls">
+      <aside class="controls-panel">
         
-        <div class="control-group">
-          <label class="control-label">Cover media</label>
-          <div class="file-input-wrap">
-            <input type="file" id="media-input" accept="image/*,video/*">
-            <div class="file-input-btn" id="media-btn">Tap to select image or video</div>
-          </div>
-        </div>
-        
-        <div class="control-group">
-          <label class="control-label">Logo</label>
-          <div class="logo-selector">
-            <button class="logo-btn-select active" data-logo="white" onclick="selectLogo('white')">
-              <span class="logo-preview dark-bg">MALLEABLE</span>
-              <span class="logo-label">White (dark bg)</span>
-            </button>
-            <button class="logo-btn-select" data-logo="black" onclick="selectLogo('black')">
-              <span class="logo-preview light-bg">MALLEABLE</span>
-              <span class="logo-label">Black (light bg)</span>
-            </button>
-          </div>
-          <p style="font-size: 0.6875rem; color: #555; margin-top: 8px;">Or upload custom:</p>
-          <div class="file-input-wrap" style="margin-top: 4px;">
-            <input type="file" id="logo-input" accept="image/png">
-            <div class="file-input-btn file-input-btn-small" id="logo-btn">Choose PNG</div>
-          </div>
-        </div>
-        
-        <div class="control-group">
-          <label class="control-label">Frame colour</label>
-          <div class="colour-row">
-            <input type="color" class="colour-input" id="colour-input" value="#0E394F">
-            <div class="colour-presets" id="presets">
-              <div class="colour-preset active" style="background: #0E394F;" data-colour="#0E394F" title="Deep Teal"></div>
-              <div class="colour-preset" style="background: #0C6C9C;" data-colour="#0C6C9C" title="Ocean Blue"></div>
-              <div class="colour-preset" style="background: #2C77EE;" data-colour="#2C77EE" title="Bright Blue"></div>
-              <div class="colour-preset" style="background: #8E9F3A;" data-colour="#8E9F3A" title="Olive"></div>
-              <div class="colour-preset" style="background: #9C1C29;" data-colour="#9C1C29" title="Deep Red"></div>
-              <div class="colour-preset" style="background: #BC6C67;" data-colour="#BC6C67" title="Dusty Pink"></div>
-              <div class="colour-preset" style="background: #212121;" data-colour="#212121" title="Charcoal"></div>
+        <!-- MEDIA -->
+        <div class="control-section">
+          <div class="control-section-header">Media</div>
+          <div class="control-section-body">
+            <div class="control-row">
+              <div class="file-input-wrap">
+                <input type="file" id="media-input" accept="image/*,video/*">
+                <div class="file-input-btn" id="media-btn">Choose image or video</div>
+              </div>
             </div>
           </div>
         </div>
         
-        <div class="control-group">
-          <label class="control-label">Edition details</label>
-          <div class="input-row">
-            <input type="text" class="text-input" id="edition-input" value="Edition 01" placeholder="Edition 01">
-            <input type="text" class="text-input" id="date-input" value="February 2026" placeholder="Month Year">
+        <!-- LOGO -->
+        <div class="control-section">
+          <div class="control-section-header">Logo</div>
+          <div class="control-section-body">
+            <div class="control-row">
+              <div class="logo-buttons">
+                <div class="logo-btn active" data-logo="white" onclick="selectLogo('white')">
+                  <span class="logo-btn-preview dark">MAL</span>
+                  <div class="logo-btn-label">White</div>
+                </div>
+                <div class="logo-btn" data-logo="black" onclick="selectLogo('black')">
+                  <span class="logo-btn-preview light">MAL</span>
+                  <div class="logo-btn-label">Black</div>
+                </div>
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="file-input-wrap">
+                <input type="file" id="logo-input" accept="image/png">
+                <div class="file-input-btn" id="logo-btn">Or upload custom PNG</div>
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="control-label">
+                <span>Size</span>
+                <span class="control-value" id="logo-size-value">28px</span>
+              </div>
+              <input type="range" class="control-slider" id="logo-size" min="16" max="48" value="28" oninput="updateLogoSize(this.value)">
+            </div>
+            <div class="control-row">
+              <div class="control-label">Alignment</div>
+              <select class="control-select" id="logo-align" onchange="updateLogoAlign(this.value)">
+                <option value="center" selected>Centre</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
           </div>
         </div>
         
-        <div class="control-group">
-          <label class="control-label">Featured articles</label>
-          <div class="articles-list">
-            <input type="text" class="text-input article-input" value="Made: Emmaus Cross" placeholder="Made: ...">
-            <input type="text" class="text-input article-input" value="Found: Structural Colour" placeholder="Found: ...">
-            <input type="text" class="text-input article-input" value="Thinking: The Malleable Mind" placeholder="Thinking: ...">
+        <!-- FRAME -->
+        <div class="control-section">
+          <div class="control-section-header">Frame</div>
+          <div class="control-section-body">
+            <div class="control-row">
+              <div class="control-label">Colour</div>
+              <div class="colour-row">
+                <input type="color" class="colour-input" id="colour-input" value="#0E394F" oninput="setColour(this.value)">
+                <div class="colour-presets" id="presets">
+                  <div class="colour-preset active" style="background: #0E394F;" data-colour="#0E394F" onclick="setColourPreset(this)"></div>
+                  <div class="colour-preset" style="background: #0C6C9C;" data-colour="#0C6C9C" onclick="setColourPreset(this)"></div>
+                  <div class="colour-preset" style="background: #2C77EE;" data-colour="#2C77EE" onclick="setColourPreset(this)"></div>
+                  <div class="colour-preset" style="background: #8E9F3A;" data-colour="#8E9F3A" onclick="setColourPreset(this)"></div>
+                  <div class="colour-preset" style="background: #9C1C29;" data-colour="#9C1C29" onclick="setColourPreset(this)"></div>
+                  <div class="colour-preset" style="background: #BC6C67;" data-colour="#BC6C67" onclick="setColourPreset(this)"></div>
+                  <div class="colour-preset" style="background: #212121;" data-colour="#212121" onclick="setColourPreset(this)"></div>
+                </div>
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="control-label">
+                <span>Thickness</span>
+                <span class="control-value" id="frame-width-value">12px</span>
+              </div>
+              <input type="range" class="control-slider" id="frame-width" min="6" max="24" value="12" oninput="updateFrameWidth(this.value)">
+            </div>
           </div>
         </div>
         
-      </section>
+        <!-- ARTICLES -->
+        <div class="control-section">
+          <div class="control-section-header">Articles</div>
+          <div class="control-section-body">
+            <div class="control-row">
+              <div class="articles-inputs">
+                <input type="text" class="control-input article-input" value="Made: Emmaus Cross" oninput="updateArticles()">
+                <input type="text" class="control-input article-input" value="Found: Structural Colour" oninput="updateArticles()">
+                <input type="text" class="control-input article-input" value="Thinking: The Malleable Mind" oninput="updateArticles()">
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="control-label">
+                <span>Text size</span>
+                <span class="control-value" id="articles-size-value">10px</span>
+              </div>
+              <input type="range" class="control-slider" id="articles-size" min="7" max="16" value="10" oninput="updateArticlesSize(this.value)">
+            </div>
+          </div>
+        </div>
+        
+        <!-- EDITION -->
+        <div class="control-section">
+          <div class="control-section-header">Edition</div>
+          <div class="control-section-body">
+            <div class="control-row">
+              <div class="control-label">Number</div>
+              <input type="text" class="control-input" id="edition-input" value="Edition 01" oninput="updateMeta()">
+            </div>
+            <div class="control-row">
+              <div class="control-label">Date</div>
+              <input type="text" class="control-input" id="date-input" value="February 2026" oninput="updateMeta()">
+            </div>
+          </div>
+        </div>
+        
+      </aside>
     </main>
     
-    <section class="export-section">
-      <button class="export-btn" onclick="showExportHelp()">Screenshot Cover</button>
-      <p class="export-note">Use Preview mode then screenshot</p>
-    </section>
-    
-    <button class="fullscreen-close" onclick="setMode('edit')">×</button>
+    <div class="fullscreen-hint">Tap anywhere to exit, then screenshot</div>
     
   </div>
 
   <script>
-    // Elements
+    // ============================================
+    // ELEMENTS
+    // ============================================
+    
     const app = document.getElementById('app');
+    const preview = document.getElementById('preview');
     const frame = document.getElementById('frame');
     const mediaContainer = document.getElementById('media-container');
     const placeholder = document.getElementById('placeholder');
     const previewImage = document.getElementById('preview-image');
     const previewVideo = document.getElementById('preview-video');
+    const logoContainer = document.getElementById('logo-container');
     const logoImg = document.getElementById('logo-img');
     const logoPlaceholder = document.getElementById('logo-placeholder');
     const articlesContainer = document.getElementById('articles-container');
-    const colourInput = document.getElementById('colour-input');
-    const mediaInput = document.getElementById('media-input');
-    const logoInput = document.getElementById('logo-input');
-    const mediaBtn = document.getElementById('media-btn');
-    const logoBtn = document.getElementById('logo-btn');
-    const presets = document.getElementById('presets');
     
-    // Logo paths (relative to tools folder, adjust if needed)
+    // Logo paths
     const logoWhitePath = '../template/MALLEABLE-Logo-wh.png';
     const logoBlackPath = '../template/MALLEABLE-Logo-bl.png';
-    let selectedLogo = 'white';
     
-    // Logo selection
-    function selectLogo(type) {
-      selectedLogo = type;
-      
-      // Update button states
-      document.querySelectorAll('.logo-btn-select').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.logo === type);
-      });
-      
-      // Update preview
-      const path = type === 'white' ? logoWhitePath : logoBlackPath;
-      logoImg.src = path;
-      logoImg.style.display = 'block';
-      logoPlaceholder.style.display = 'none';
-      
-      // Clear custom upload state
-      logoBtn.textContent = 'Choose PNG';
-      logoBtn.classList.remove('has-file');
-    }
+    // ============================================
+    // MEDIA
+    // ============================================
     
-    // Handle media upload
-    mediaInput.addEventListener('change', (e) => {
+    document.getElementById('media-input').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       
@@ -690,79 +753,91 @@
         previewVideo.style.display = 'block';
         previewVideo.src = url;
         previewVideo.play();
-        mediaBtn.textContent = file.name;
       } else {
         previewVideo.style.display = 'none';
         previewImage.style.display = 'block';
         previewImage.src = url;
-        mediaBtn.textContent = file.name;
       }
-      mediaBtn.classList.add('has-file');
+      
+      document.getElementById('media-btn').textContent = file.name;
+      document.getElementById('media-btn').classList.add('has-file');
     });
     
-    // Handle custom logo upload (overrides selector)
-    logoInput.addEventListener('change', (e) => {
+    // ============================================
+    // LOGO
+    // ============================================
+    
+    function selectLogo(type) {
+      // Update buttons
+      document.querySelectorAll('.logo-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.logo === type);
+      });
+      
+      // Load logo
+      const path = type === 'white' ? logoWhitePath : logoBlackPath;
+      logoImg.src = path;
+      logoImg.style.display = 'block';
+      logoPlaceholder.style.display = 'none';
+      
+      // Reset custom upload
+      document.getElementById('logo-btn').textContent = 'Or upload custom PNG';
+      document.getElementById('logo-btn').classList.remove('has-file');
+    }
+    
+    document.getElementById('logo-input').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      
       logoImg.src = URL.createObjectURL(file);
       logoImg.style.display = 'block';
       logoPlaceholder.style.display = 'none';
-      logoBtn.textContent = file.name;
-      logoBtn.classList.add('has-file');
       
-      // Clear selector state
-      document.querySelectorAll('.logo-btn-select').forEach(btn => {
-        btn.classList.remove('active');
-      });
+      document.getElementById('logo-btn').textContent = file.name;
+      document.getElementById('logo-btn').classList.add('has-file');
+      
+      // Clear button selection
+      document.querySelectorAll('.logo-btn').forEach(btn => btn.classList.remove('active'));
     });
     
-    // Handle colour input
-    colourInput.addEventListener('input', (e) => {
-      setColour(e.target.value);
-      clearPresetActive();
-    });
+    function updateLogoSize(value) {
+      document.documentElement.style.setProperty('--logo-size', value + 'px');
+      document.getElementById('logo-size-value').textContent = value + 'px';
+    }
     
-    // Handle preset clicks
-    presets.addEventListener('click', (e) => {
-      const preset = e.target.closest('.colour-preset');
-      if (!preset) return;
-      const colour = preset.dataset.colour;
-      setColour(colour);
-      colourInput.value = colour;
-      setPresetActive(preset);
-    });
+    function updateLogoAlign(value) {
+      document.documentElement.style.setProperty('--logo-align', value);
+    }
+    
+    // ============================================
+    // FRAME
+    // ============================================
     
     function setColour(colour) {
-      frame.style.borderColor = colour;
       document.documentElement.style.setProperty('--frame-colour', colour);
+      document.getElementById('colour-input').value = colour;
     }
     
-    function setPresetActive(preset) {
+    function setColourPreset(el) {
+      const colour = el.dataset.colour;
+      setColour(colour);
+      
       document.querySelectorAll('.colour-preset').forEach(p => p.classList.remove('active'));
-      preset.classList.add('active');
+      el.classList.add('active');
     }
     
-    function clearPresetActive() {
-      document.querySelectorAll('.colour-preset').forEach(p => p.classList.remove('active'));
+    function updateFrameWidth(value) {
+      document.documentElement.style.setProperty('--frame-width', value + 'px');
+      document.getElementById('frame-width-value').textContent = value + 'px';
     }
     
-    // Update meta text
-    document.getElementById('edition-input').addEventListener('input', updateMeta);
-    document.getElementById('date-input').addEventListener('input', updateMeta);
-    
-    function updateMeta() {
-      document.getElementById('meta-edition').textContent = document.getElementById('edition-input').value || 'Edition';
-      document.getElementById('meta-date').textContent = document.getElementById('date-input').value || 'Date';
-    }
-    
-    // Update articles
-    document.querySelectorAll('.article-input').forEach(input => {
-      input.addEventListener('input', updateArticles);
-    });
+    // ============================================
+    // ARTICLES
+    // ============================================
     
     function updateArticles() {
       const inputs = document.querySelectorAll('.article-input');
       articlesContainer.innerHTML = '';
+      
       inputs.forEach(input => {
         if (input.value.trim()) {
           const div = document.createElement('div');
@@ -773,47 +848,84 @@
       });
     }
     
-    // Mode switching
-    function setMode(mode) {
-      const buttons = document.querySelectorAll('.mode-btn');
-      buttons.forEach(btn => btn.classList.remove('active'));
+    function updateArticlesSize(value) {
+      document.documentElement.style.setProperty('--articles-size', value + 'px');
+      document.getElementById('articles-size-value').textContent = value + 'px';
+    }
+    
+    // ============================================
+    // EDITION
+    // ============================================
+    
+    function updateMeta() {
+      document.getElementById('meta-edition').textContent = document.getElementById('edition-input').value || 'Edition';
+      document.getElementById('meta-date').textContent = document.getElementById('date-input').value || 'Date';
+    }
+    
+    // ============================================
+    // FULLSCREEN
+    // ============================================
+    
+    function enterFullscreen() {
+      app.classList.add('fullscreen');
       
-      if (mode === 'preview') {
-        app.classList.add('fullscreen');
-        buttons[1].classList.add('active');
-      } else {
-        app.classList.remove('fullscreen');
-        buttons[0].classList.add('active');
+      // Try native fullscreen
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
       }
     }
     
-    // Export help
-    function showExportHelp() {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    function exitFullscreen() {
+      app.classList.remove('fullscreen');
       
-      let instructions;
-      if (isIOS) {
-        instructions = '1. Tap "Preview" button above\n2. Press Side button + Volume Up\n3. Crop to the cover area\n4. Save as cover-composed.jpg';
-      } else if (isMac) {
-        instructions = '1. Click "Preview" button above\n2. Press Cmd+Shift+4\n3. Select the cover area\n4. Rename to cover-composed.jpg';
-      } else {
-        instructions = '1. Click "Preview" button above\n2. Press Win+Shift+S\n3. Select the cover area\n4. Save as cover-composed.jpg';
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
       }
-      
-      alert('Screenshot Instructions:\n\n' + instructions);
-      setMode('preview');
     }
     
-    // Tap on media area to trigger file input (mobile convenience)
-    mediaContainer.addEventListener('click', () => {
-      if (!previewImage.src && !previewVideo.src) {
-        mediaInput.click();
+    // Exit on tap in fullscreen
+    app.addEventListener('click', (e) => {
+      if (app.classList.contains('fullscreen')) {
+        exitFullscreen();
       }
     });
     
-    // Initialise
+    // Exit on escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && app.classList.contains('fullscreen')) {
+        exitFullscreen();
+      }
+    });
+    
+    // Handle native fullscreen exit
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        app.classList.remove('fullscreen');
+      }
+    });
+    
+    // ============================================
+    // COLLAPSIBLE SECTIONS
+    // ============================================
+    
+    document.querySelectorAll('.control-section-header').forEach(header => {
+      header.addEventListener('click', () => {
+        header.parentElement.classList.toggle('collapsed');
+      });
+    });
+    
+    // ============================================
+    // INIT
+    // ============================================
+    
     setColour('#0E394F');
+    updateFrameWidth(12);
+    updateLogoSize(28);
+    updateArticlesSize(10);
     selectLogo('white');
   </script>
 </body>
