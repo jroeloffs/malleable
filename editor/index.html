@@ -292,9 +292,17 @@ select.field-input { appearance: none; background-image: url("data:image/svg+xml
         <div class="field">
           <label class="field-label">Highlight text size</label>
           <div style="display:flex;align-items:center;gap:12px;">
-            <button class="btn-sm" onclick="adjustHighlightSize(-1)" style="width:40px;padding:8px;font-size:16px;">−</button>
+            <button class="btn-sm" onclick="adjustHighlightSize(-2)" style="width:40px;padding:8px;font-size:16px;">−</button>
             <span id="hl-size-display" style="font-size:14px;font-weight:600;min-width:40px;text-align:center;">14px</span>
-            <button class="btn-sm" onclick="adjustHighlightSize(1)" style="width:40px;padding:8px;font-size:16px;">+</button>
+            <button class="btn-sm" onclick="adjustHighlightSize(2)" style="width:40px;padding:8px;font-size:16px;">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Logo size</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-sm" onclick="adjustLogoSize(-4)" style="width:40px;padding:8px;font-size:16px;">−</button>
+            <span id="logo-size-display" style="font-size:14px;font-weight:600;min-width:40px;text-align:center;">44px</span>
+            <button class="btn-sm" onclick="adjustLogoSize(4)" style="width:40px;padding:8px;font-size:16px;">+</button>
           </div>
         </div>
       </div>
@@ -447,7 +455,8 @@ function defaultState() {
       imageSrc: null,
       mediaType: 'image',
       highlights: ['', '', ''],
-      highlightSize: 14
+      highlightSize: 14,
+      logoSize: 44
     },
     pages: [],
     close: {
@@ -522,9 +531,18 @@ function updateHighlight(idx, value) {
 
 function adjustHighlightSize(delta) {
   const current = state.cover.highlightSize || 14;
-  const next = Math.max(8, Math.min(24, current + delta));
+  const next = Math.max(8, Math.min(28, current + delta));
   state.cover.highlightSize = next;
   document.getElementById('hl-size-display').textContent = next + 'px';
+  scheduleSave();
+  updatePreview();
+}
+
+function adjustLogoSize(delta) {
+  const current = state.cover.logoSize || 44;
+  const next = Math.max(20, Math.min(80, current + delta));
+  state.cover.logoSize = next;
+  document.getElementById('logo-size-display').textContent = next + 'px';
   scheduleSave();
   updatePreview();
 }
@@ -830,6 +848,10 @@ function renderSettings() {
   // Highlight size
   const hlSizeEl = document.getElementById('hl-size-display');
   if (hlSizeEl) hlSizeEl.textContent = (state.cover.highlightSize || 14) + 'px';
+
+  // Logo size
+  const logoSizeEl = document.getElementById('logo-size-display');
+  if (logoSizeEl) logoSizeEl.textContent = (state.cover.logoSize || 44) + 'px';
 }
 
 function toggleEditPage(id) {
@@ -868,7 +890,7 @@ function generatePreviewHTML() {
   pagesHTML += `
     <div class="m-page m-cover active">
       ${coverBg}
-      <div class="m-cover-logo"><img src="${logoFile}" alt="MALLEABLE"></div>
+      <div class="m-cover-logo"><img src="${logoFile}" alt="MALLEABLE" style="height:${state.cover.logoSize || 44}px"></div>
       <div class="m-content m-content--img">
         ${hlItems ? `<ul class="m-highlights">${hlItems}</ul>` : ''}
         <div class="m-cover-meta"><span>Edition ${esc(state.edition)}</span><span>${esc(state.date)}</span></div>
@@ -970,7 +992,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #000; font
 .m-link { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600; text-decoration: none; color: inherit; opacity: 0.7; border-bottom: 1px solid currentColor; }
 .m-cover .m-content { padding-bottom: 44px; }
 .m-cover-logo { position: absolute; top: 0; left: 0; right: 0; z-index: 12; text-align: center; padding-top: 28px; pointer-events: none; }
-.m-cover-logo img { height: 28px; width: auto; filter: drop-shadow(0 1px 6px rgba(0,0,0,0.3)); }
+.m-cover-logo img { height: var(--logo-height, 44px); width: auto; filter: drop-shadow(0 1px 6px rgba(0,0,0,0.3)); }
 .m-cover-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; opacity: 0.6; margin-bottom: 14px; }
 .m-highlights { list-style: none; }
 .m-highlights li { font-size: 14px; font-weight: 600; line-height: 1.6; opacity: 0.85; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -1048,9 +1070,10 @@ async function exportEdition() {
     if (state.cover.imageSrc) {
       progress('Processing cover media...');
       if (state.cover.mediaType === 'video') {
-        // Video: include as-is (Phase 2 will add transcoding)
+        // Video: include as-is
         const base64 = state.cover.imageSrc.split(',')[1];
-        const ext = state.cover.imageSrc.match(/data:video\/(\w+)/)?.[1] || 'mp4';
+        let ext = state.cover.imageSrc.match(/data:video\/(\w+)/)?.[1] || 'mp4';
+        if (ext === 'quicktime') ext = 'mov';
         assets.file('cover.' + ext, base64, {base64: true});
         assetMap['cover'] = 'assets/cover.' + ext;
       } else {
@@ -1152,7 +1175,7 @@ function generateExportHTML(assetMap) {
   pagesHTML += `
     <div class="m-page m-cover active">
       ${coverBg}
-      <div class="m-cover-logo"><img src="${logoAsset}" alt="MALLEABLE"></div>
+      <div class="m-cover-logo"><img src="${logoAsset}" alt="MALLEABLE" style="height:${state.cover.logoSize || 44}px"></div>
       <div class="m-content m-content--img">
         ${hlItems ? `<ul class="m-highlights">${hlItems}</ul>` : ''}
         <div class="m-cover-meta"><span>Edition ${esc(state.edition)}</span><span>${esc(state.date)}</span></div>
@@ -1331,7 +1354,7 @@ async function exportCoverImage() {
       logoImg.onerror = reject;
       logoImg.src = logoPath;
     });
-    const logoH = Math.round(28 * W / 390);
+    const logoH = Math.round((state.cover.logoSize || 44) * W / 390);
     const logoW = logoH * (logoImg.naturalWidth / logoImg.naturalHeight);
     ctx.drawImage(logoImg, (W - logoW) / 2, Math.round(32 * W / 390), logoW, logoH);
   } catch (e) {
