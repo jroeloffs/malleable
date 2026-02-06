@@ -554,7 +554,7 @@
     
     <header class="header">
       <h1>Cover Generator</h1>
-      <button class="screenshot-btn" onclick="enterFullscreen()">Screenshot Mode</button>
+      <button class="screenshot-btn" onclick="enterFullscreen(); event.stopPropagation();">Screenshot Mode</button>
     </header>
     
     <main class="main">
