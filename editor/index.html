@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Malleable Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ===== EDITOR RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #111; color: #e0e0e0;
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column;
+}
+button { font-family: inherit; cursor: pointer; border: none; }
+input, textarea, select { font-family: inherit; }
+
+/* ===== LAYOUT ===== */
+.app { display: flex; flex: 1; overflow: hidden; }
+.editor-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.editor-content { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.preview-panel {
+  display: none; width: 420px; flex-shrink: 0;
+  background: #0a0a0a; padding: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .preview-panel { display: none !important; }
+}
+@media (min-width: 901px) {
+  .preview-panel { display: flex !important; }
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0; min-height: 48px;
+}
+.header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.04em; }
+.header-title span { color: #5a8a9a; }
+.header-actions { display: flex; gap: 8px; }
+.btn-sm {
+  padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  background: #2a2a2a; color: #ccc; transition: background 0.15s;
+}
+.btn-sm:hover { background: #3a3a3a; }
+.btn-sm--primary { background: #0E394F; color: #fff; }
+.btn-sm--primary:hover { background: #145a7a; }
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex; background: #1a1a1a; border-top: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+.tab {
+  flex: 1; padding: 10px 4px 12px; text-align: center;
+  font-size: 11px; font-weight: 600; color: #666;
+  background: none; transition: color 0.15s;
+  letter-spacing: 0.02em;
+}
+.tab.active { color: #5a8a9a; }
+.tab svg { display: block; margin: 0 auto 3px; width: 20px; height: 20px; }
+
+/* ===== TAB CONTENT ===== */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== FORM ELEMENTS ===== */
+.field { margin-bottom: 16px; }
+.field-label {
+  display: block; font-size: 11px; font-weight: 600; color: #888;
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px;
+}
+.field-input {
+  width: 100%; padding: 10px 12px; background: #1e1e1e; border: 1px solid #333;
+  border-radius: 8px; color: #e0e0e0; font-size: 14px;
+  transition: border-color 0.15s;
+}
+.field-input:focus { outline: none; border-color: #5a8a9a; }
+textarea.field-input { min-height: 80px; resize: vertical; line-height: 1.5; }
+select.field-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+
+/* ===== COLOUR PRESETS ===== */
+.colour-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.colour-swatch {
+  width: 36px; height: 36px; border-radius: 8px; border: 2px solid transparent;
+  cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+}
+.colour-swatch:hover { transform: scale(1.1); }
+.colour-swatch.active { border-color: #fff; }
+
+/* ===== PAGE LIST ===== */
+.page-list { display: flex; flex-direction: column; gap: 8px; }
+.page-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; background: #1e1e1e; border-radius: 10px;
+  border: 1px solid #2a2a2a; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.page-card:hover { border-color: #444; }
+.page-card.editing { border-color: #5a8a9a; background: #1a2a30; }
+.page-thumb {
+  width: 48px; height: 72px; border-radius: 6px; flex-shrink: 0;
+  background: #333; overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.page-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.page-thumb-label { font-size: 9px; color: #666; text-transform: uppercase; font-weight: 600; }
+.page-info { flex: 1; min-width: 0; }
+.page-info-section { font-size: 10px; font-weight: 600; color: #5a8a9a; text-transform: uppercase; letter-spacing: 0.08em; }
+.page-info-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.page-info-empty { font-size: 13px; color: #666; font-style: italic; }
+.page-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.page-btn {
+  width: 32px; height: 32px; border-radius: 6px;
+  background: #2a2a2a; color: #888; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.page-btn:hover { background: #3a3a3a; color: #ccc; }
+.page-btn--danger:hover { background: #4a2020; color: #e55; }
+
+.add-page-btn {
+  width: 100%; padding: 14px; border-radius: 10px; background: #1e1e1e;
+  border: 2px dashed #333; color: #666; font-size: 14px; font-weight: 500;
+  transition: border-color 0.15s, color 0.15s; margin-top: 4px;
+}
+.add-page-btn:hover { border-color: #5a8a9a; color: #5a8a9a; }
+
+/* ===== PAGE EDITOR (inline below card) ===== */
+.page-editor {
+  background: #1a2a30; border: 1px solid #2a4a55; border-radius: 10px;
+  padding: 16px; margin-top: -4px; animation: slideDown 0.2s ease;
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== IMAGE UPLOAD ===== */
+.img-upload {
+  position: relative; width: 100%; aspect-ratio: 9/16; max-height: 200px;
+  border-radius: 8px; border: 2px dashed #444; overflow: hidden;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 6px; color: #666; font-size: 13px;
+  transition: border-color 0.15s; background: #1a1a1a;
+}
+.img-upload:hover { border-color: #5a8a9a; }
+.img-upload.has-image { border-style: solid; border-color: #333; }
+.img-upload img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.img-upload input { display: none; }
+.img-upload-remove {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 28px; height: 28px; border-radius: 14px;
+  background: rgba(0,0,0,0.7); color: #fff; font-size: 16px;
+  display: none; align-items: center; justify-content: center;
+}
+.img-upload.has-image .img-upload-remove { display: flex; }
+
+/* ===== PREVIEW PHONE FRAME ===== */
+.phone-frame {
+  width: 360px; height: 780px; max-height: 90vh;
+  border-radius: 36px; overflow: hidden;
+  box-shadow: 0 0 0 6px #222, 0 16px 50px rgba(0,0,0,0.5);
+  background: #000; position: relative;
+}
+.phone-frame iframe {
+  width: 100%; height: 100%; border: none;
+}
+
+/* ===== FULLSCREEN PREVIEW ===== */
+.preview-overlay {
+  position: fixed; inset: 0; z-index: 100; background: #000;
+  display: none; flex-direction: column;
+}
+.preview-overlay.active { display: flex; }
+.preview-close {
+  position: absolute; top: 12px; right: 12px; z-index: 110;
+  width: 40px; height: 40px; border-radius: 20px;
+  background: rgba(255,255,255,0.15); color: #fff; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.preview-overlay iframe { flex: 1; border: none; }
+
+/* ===== EXPORT PANEL ===== */
+.export-section { margin-bottom: 24px; }
+.export-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.export-section p { font-size: 13px; color: #888; line-height: 1.5; margin-bottom: 12px; }
+.export-btn {
+  width: 100%; padding: 14px 16px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; text-align: center;
+  transition: background 0.15s;
+}
+.export-btn--zip { background: #0E394F; color: #fff; }
+.export-btn--zip:hover { background: #145a7a; }
+.export-btn--cover { background: #2a2a2a; color: #ccc; margin-top: 8px; }
+.export-btn--cover:hover { background: #3a3a3a; }
+
+.export-progress {
+  margin-top: 12px; padding: 12px; background: #1e1e1e; border-radius: 8px;
+  font-size: 12px; color: #888; display: none;
+}
+.export-progress.active { display: block; }
+.progress-fill {
+  height: 4px; background: #5a8a9a; border-radius: 2px;
+  margin-top: 8px; transition: width 0.3s;
+}
+
+/* ===== SETTINGS ===== */
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid #2a2a2a;
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 14px; }
+.setting-value { font-size: 13px; color: #888; }
+
+/* ===== STATUS BAR ===== */
+.status {
+  padding: 6px 16px; background: #1a1a1a; border-top: 1px solid #2a2a2a;
+  font-size: 11px; color: #555; display: flex; justify-content: space-between;
+}
+.status-saved { color: #4a8a5a; }
+
+/* ===== SECTION HEADING ===== */
+.section-head { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #fff; }
+.section-sub { font-size: 12px; color: #666; margin-bottom: 16px; line-height: 1.5; }
+
+/* ===== COVER HIGHLIGHTS ===== */
+.highlight-fields { display: flex; flex-direction: column; gap: 6px; }
+.highlight-fields input { font-size: 13px; padding: 8px 10px; }
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #2a2a2a; color: #fff; padding: 10px 20px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; z-index: 200;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.show { opacity: 1; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .editor-content { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title"><span>MALLEABLE</span> Editor</div>
+  <div class="header-actions">
+    <button class="btn-sm" onclick="previewFullscreen()">Preview</button>
+    <button class="btn-sm btn-sm--primary" onclick="switchTab('export')">Export</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="editor-panel">
+    <div class="editor-content">
+      <!-- PAGES TAB -->
+      <div id="tab-pages" class="tab-panel active">
+        <div class="section-head">Pages</div>
+        <div id="page-list" class="page-list"></div>
+        <button class="add-page-btn" onclick="addPage()">+ Add page</button>
+      </div>
+
+      <!-- COVER TAB -->
+      <div id="tab-cover" class="tab-panel">
+        <div class="section-head">Cover</div>
+        <div class="field">
+          <label class="field-label">Cover image</label>
+          <div class="img-upload" id="cover-upload" onclick="triggerUpload('cover-file')">
+            <input type="file" id="cover-file" accept="image/*" onchange="handleCoverImage(this)">
+            <span>Tap to add cover image</span>
+            <button class="img-upload-remove" onclick="event.stopPropagation(); removeCoverImage()">✕</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Highlights (3 lines)</label>
+          <div class="highlight-fields">
+            <input class="field-input" placeholder="Made: ..." oninput="updateHighlight(0, this.value)" id="hl-0">
+            <input class="field-input" placeholder="Found: ..." oninput="updateHighlight(1, this.value)" id="hl-1">
+            <input class="field-input" placeholder="Thinking: ..." oninput="updateHighlight(2, this.value)" id="hl-2">
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="tab-settings" class="tab-panel">
+        <div class="section-head">Edition settings</div>
+        <div class="field">
+          <label class="field-label">Edition number</label>
+          <input class="field-input" type="text" placeholder="01" id="set-edition" oninput="updateSetting('edition', this.value)">
+        </div>
+        <div class="field">
+          <label class="field-label">Date</label>
+          <input class="field-input" type="text" placeholder="February 2026" id="set-date" oninput="updateSetting('date', this.value)">
+        </div>
+        <div class="field">
+          <label class="field-label">Frame colour</label>
+          <div class="colour-presets" id="colour-presets"></div>
+        </div>
+        <div class="field">
+          <label class="field-label">Logo</label>
+          <select class="field-input" id="set-logo" onchange="updateSetting('logoVariant', this.value)">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </div>
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #2a2a2a;">
+          <div class="section-head">Close page</div>
+          <div class="field">
+            <label class="field-label">Message</label>
+            <input class="field-input" type="text" placeholder="See you next quarter." id="set-close-msg" oninput="updateClose('message', this.value)">
+          </div>
+          <div class="field">
+            <label class="field-label">Subscribe URL</label>
+            <input class="field-input" type="url" placeholder="https://jacoroeloffs.com/#/portal/signup" id="set-close-url" oninput="updateClose('subscribeUrl', this.value)">
+          </div>
+        </div>
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #2a2a2a;">
+          <button class="btn-sm btn-sm--primary" onclick="resetDraft()" style="width:100%;padding:12px;">New edition (clear draft)</button>
+        </div>
+      </div>
+
+      <!-- EXPORT TAB -->
+      <div id="tab-export" class="tab-panel">
+        <div class="section-head">Export</div>
+
+        <div class="export-section">
+          <h3>Download edition</h3>
+          <p>Exports a zip file containing your optimised edition. Photos are resized to 1080px and converted to JPEG for fast loading.</p>
+          <button class="export-btn export-btn--zip" onclick="exportEdition()">Download edition zip</button>
+          <div class="export-progress" id="export-progress">
+            <span id="export-status">Preparing...</span>
+            <div style="background:#2a2a2a;border-radius:2px;overflow:hidden;margin-top:8px;">
+              <div class="progress-fill" id="export-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="export-section">
+          <h3>Cover image for Ghost</h3>
+          <p>Generates a static JPG of the cover for your newsletter.</p>
+          <button class="export-btn export-btn--cover" onclick="exportCoverImage()">Download cover image</button>
+        </div>
+
+        <div class="export-section">
+          <h3>Edition data</h3>
+          <p>Export or import the raw edition data as JSON.</p>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm" onclick="exportJSON()" style="flex:1;padding:10px;">Export JSON</button>
+            <button class="btn-sm" onclick="document.getElementById('import-json').click()" style="flex:1;padding:10px;">Import JSON</button>
+            <input type="file" id="import-json" accept=".json" style="display:none" onchange="importJSON(this)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" data-tab="pages" onclick="switchTab('pages')">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="14" height="16" rx="2"/><line x1="6" y1="6" x2="14" y2="6"/><line x1="6" y1="9.5" x2="14" y2="9.5"/><line x1="6" y1="13" x2="10" y2="13"/></svg>
+        Pages
+      </button>
+      <button class="tab" data-tab="cover" onclick="switchTab('cover')">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="14" height="16" rx="2"/><circle cx="10" cy="8" r="3"/><line x1="6" y1="14" x2="14" y2="14"/></svg>
+        Cover
+      </button>
+      <button class="tab" data-tab="settings" onclick="switchTab('settings')">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>
+        Settings
+      </button>
+      <button class="tab" data-tab="export" onclick="switchTab('export')">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2v10M10 12l-3-3M10 12l3-3"/><path d="M3 14v2a2 2 0 002 2h10a2 2 0 002-2v-2"/></svg>
+        Export
+      </button>
+    </div>
+
+    <div class="status">
+      <span id="status-text">Ready</span>
+      <span id="status-save"></span>
+    </div>
+  </div>
+
+  <!-- DESKTOP PREVIEW -->
+  <div class="preview-panel">
+    <div class="phone-frame">
+      <iframe id="preview-iframe" sandbox="allow-same-origin"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN PREVIEW -->
+<div class="preview-overlay" id="preview-overlay">
+  <button class="preview-close" onclick="closePreview()">✕</button>
+  <iframe id="preview-fullscreen" sandbox="allow-same-origin"></iframe>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== BRAND COLOURS =====
+const COLOURS = [
+  { name: 'Deep Teal', hex: '#0E394F' },
+  { name: 'Ocean Blue', hex: '#0C6C9C' },
+  { name: 'Bright Blue', hex: '#2C77EE' },
+  { name: 'Olive', hex: '#8E9F3A' },
+  { name: 'Deep Red', hex: '#9C1C29' },
+  { name: 'Dusty Pink', hex: '#BC6C67' },
+  { name: 'Charcoal', hex: '#212121' },
+];
+
+// ===== DEFAULT STATE =====
+function defaultState() {
+  return {
+    edition: '01',
+    date: 'February 2026',
+    frameColour: '#0E394F',
+    frameOpacity: 0.9,
+    logoVariant: 'white',
+    cover: {
+      imageSrc: null,
+      highlights: ['', '', '']
+    },
+    pages: [],
+    close: {
+      message: 'See you next quarter.',
+      shareText: '',
+      subscribeUrl: 'https://jacoroeloffs.com/#/portal/signup'
+    }
+  };
+}
+
+let state = defaultState();
+let editingPageId = null;
+let saveTimeout = null;
+
+// ===== INDEXEDDB =====
+const DB_NAME = 'malleable-editor';
+const DB_VERSION = 1;
+const STORE_NAME = 'drafts';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE_NAME);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveDraft() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(JSON.parse(JSON.stringify(state)), 'current');
+    await new Promise((r, j) => { tx.oncomplete = r; tx.onerror = j; });
+    document.getElementById('status-save').textContent = 'Saved';
+    document.getElementById('status-save').className = 'status-saved';
+  } catch (e) {
+    console.error('Save failed:', e);
+  }
+}
+
+async function loadDraft() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).get('current');
+    return new Promise((resolve) => {
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) { return null; }
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimeout);
+  document.getElementById('status-save').textContent = '';
+  saveTimeout = setTimeout(saveDraft, 800);
+}
+
+// ===== STATE UPDATES =====
+function updateSetting(key, value) {
+  state[key] = value;
+  scheduleSave();
+  updatePreview();
+}
+
+function updateHighlight(idx, value) {
+  state.cover.highlights[idx] = value;
+  scheduleSave();
+  updatePreview();
+}
+
+function updateClose(key, value) {
+  state.close[key] = value;
+  scheduleSave();
+}
+
+// ===== PAGE MANAGEMENT =====
+function genId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).substr(2,4); }
+
+function addPage() {
+  const page = {
+    id: genId(),
+    section: 'made',
+    title: '',
+    text: '',
+    backgroundType: 'colour',
+    backgroundValue: '#ffffff',
+    imageSrc: null,
+    link: null,
+    quote: '',
+    author: ''
+  };
+  state.pages.push(page);
+  editingPageId = page.id;
+  scheduleSave();
+  renderPageList();
+  updatePreview();
+}
+
+function deletePage(id) {
+  state.pages = state.pages.filter(p => p.id !== id);
+  if (editingPageId === id) editingPageId = null;
+  scheduleSave();
+  renderPageList();
+  updatePreview();
+}
+
+function movePage(id, dir) {
+  const idx = state.pages.findIndex(p => p.id === id);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= state.pages.length) return;
+  [state.pages[idx], state.pages[newIdx]] = [state.pages[newIdx], state.pages[idx]];
+  scheduleSave();
+  renderPageList();
+  updatePreview();
+}
+
+function updatePage(id, key, value) {
+  const page = state.pages.find(p => p.id === id);
+  if (!page) return;
+  page[key] = value;
+  if (key === 'section' && value === 'thinking') {
+    page.backgroundType = 'colour';
+    page.backgroundValue = page.backgroundValue || '#f5f5f5';
+  }
+  scheduleSave();
+  renderPageList();
+  updatePreview();
+}
+
+// ===== IMAGE HANDLING =====
+function triggerUpload(inputId) {
+  document.getElementById(inputId).click();
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleCoverImage(input) {
+  if (!input.files[0]) return;
+  const src = await readFileAsDataURL(input.files[0]);
+  state.cover.imageSrc = src;
+  scheduleSave();
+  renderCover();
+  updatePreview();
+}
+
+function removeCoverImage() {
+  state.cover.imageSrc = null;
+  document.getElementById('cover-file').value = '';
+  scheduleSave();
+  renderCover();
+  updatePreview();
+}
+
+async function handlePageImage(pageId, input) {
+  if (!input.files[0]) return;
+  const src = await readFileAsDataURL(input.files[0]);
+  const page = state.pages.find(p => p.id === pageId);
+  if (!page) return;
+  page.backgroundType = 'image';
+  page.imageSrc = src;
+  scheduleSave();
+  renderPageList();
+  updatePreview();
+}
+
+function removePageImage(pageId) {
+  const page = state.pages.find(p => p.id === pageId);
+  if (!page) return;
+  page.imageSrc = null;
+  page.backgroundType = 'colour';
+  scheduleSave();
+  renderPageList();
+  updatePreview();
+}
+
+// ===== IMAGE OPTIMISATION =====
+function optimiseImage(dataUrl, maxWidth = 1080, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      if (w > maxWidth) {
+        h = Math.round(h * (maxWidth / w));
+        w = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Canvas export failed')),
+        'image/jpeg', quality
+      );
+    };
+    img.onerror = () => reject(new Error('Image load failed. If HEIC, try converting to JPEG first.'));
+    img.src = dataUrl;
+  });
+}
+
+// ===== RENDERING =====
+function renderPageList() {
+  const container = document.getElementById('page-list');
+  let html = '';
+  state.pages.forEach((page, idx) => {
+    const isEditing = editingPageId === page.id;
+    const thumbContent = page.imageSrc
+      ? `<img src="${page.imageSrc}" alt="">`
+      : `<span class="page-thumb-label" style="background:${page.backgroundValue || '#fff'};width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${isLight(page.backgroundValue) ? '#999' : '#ccc'}">${idx + 1}</span>`;
+
+    html += `
+      <div class="page-card ${isEditing ? 'editing' : ''}" onclick="toggleEditPage('${page.id}')">
+        <div class="page-thumb">${thumbContent}</div>
+        <div class="page-info">
+          <div class="page-info-section">${page.section}</div>
+          ${page.title ? `<div class="page-info-title">${esc(page.title)}</div>` : `<div class="page-info-empty">Untitled</div>`}
+        </div>
+        <div class="page-actions" onclick="event.stopPropagation()">
+          <button class="page-btn" onclick="movePage('${page.id}', -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
+          <button class="page-btn" onclick="movePage('${page.id}', 1)" ${idx === state.pages.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="page-btn page-btn--danger" onclick="deletePage('${page.id}')">✕</button>
+        </div>
+      </div>
+    `;
+
+    if (isEditing) {
+      html += renderPageEditor(page);
+    }
+  });
+  container.innerHTML = html;
+}
+
+function renderPageEditor(page) {
+  const isBgImage = page.backgroundType === 'image' || page.imageSrc;
+  const isThinking = page.section === 'thinking';
+  const fileInputId = 'file-' + page.id;
+
+  return `
+    <div class="page-editor">
+      <div class="field">
+        <label class="field-label">Section</label>
+        <select class="field-input" value="${page.section}" onchange="updatePage('${page.id}', 'section', this.value)">
+          <option value="made" ${page.section === 'made' ? 'selected' : ''}>Made</option>
+          <option value="found" ${page.section === 'found' ? 'selected' : ''}>Found</option>
+          <option value="thinking" ${page.section === 'thinking' ? 'selected' : ''}>Thinking</option>
+        </select>
+      </div>
+
+      ${isThinking ? `
+        <div class="field">
+          <label class="field-label">Quote</label>
+          <textarea class="field-input" placeholder="The quote text..." oninput="updatePage('${page.id}', 'quote', this.value)">${esc(page.quote || '')}</textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Author</label>
+          <input class="field-input" type="text" placeholder="Author name" value="${esc(page.author || '')}" oninput="updatePage('${page.id}', 'author', this.value)">
+        </div>
+      ` : `
+        <div class="field">
+          <label class="field-label">Title</label>
+          <input class="field-input" type="text" placeholder="Page title" value="${esc(page.title)}" oninput="updatePage('${page.id}', 'title', this.value)">
+        </div>
+        <div class="field">
+          <label class="field-label">Text</label>
+          <textarea class="field-input" placeholder="Description or body text..." oninput="updatePage('${page.id}', 'text', this.value)">${esc(page.text)}</textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Link URL</label>
+          <input class="field-input" type="url" placeholder="https://..." value="${esc(page.link?.url || '')}" oninput="updatePage('${page.id}', 'link', this.value ? {url:this.value, label: '${page.link?.label || 'Source'}'} : null)">
+        </div>
+      `}
+
+      <div class="field">
+        <label class="field-label">Background image</label>
+        <div class="img-upload ${page.imageSrc ? 'has-image' : ''}" onclick="document.getElementById('${fileInputId}').click()">
+          <input type="file" id="${fileInputId}" accept="image/*" onchange="handlePageImage('${page.id}', this)">
+          ${page.imageSrc ? `<img src="${page.imageSrc}" alt="">` : '<span>Tap to add image</span>'}
+          <button class="img-upload-remove" onclick="event.stopPropagation(); removePageImage('${page.id}')">✕</button>
+        </div>
+      </div>
+
+      ${!page.imageSrc ? `
+        <div class="field">
+          <label class="field-label">Background colour</label>
+          <input class="field-input" type="color" value="${page.backgroundValue || '#ffffff'}" oninput="updatePage('${page.id}', 'backgroundValue', this.value)" style="height:44px;padding:4px;">
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderCover() {
+  const el = document.getElementById('cover-upload');
+  if (state.cover.imageSrc) {
+    el.classList.add('has-image');
+    el.querySelector('img')?.remove();
+    const img = document.createElement('img');
+    img.src = state.cover.imageSrc;
+    el.insertBefore(img, el.firstChild);
+    el.querySelector('span').style.display = 'none';
+  } else {
+    el.classList.remove('has-image');
+    el.querySelector('img')?.remove();
+    el.querySelector('span').style.display = '';
+  }
+}
+
+function renderSettings() {
+  document.getElementById('set-edition').value = state.edition;
+  document.getElementById('set-date').value = state.date;
+  document.getElementById('set-logo').value = state.logoVariant;
+  document.getElementById('set-close-msg').value = state.close.message;
+  document.getElementById('set-close-url').value = state.close.subscribeUrl;
+
+  const presetsEl = document.getElementById('colour-presets');
+  presetsEl.innerHTML = COLOURS.map(c =>
+    `<div class="colour-swatch ${c.hex === state.frameColour ? 'active' : ''}"
+          style="background:${c.hex}" title="${c.name}"
+          onclick="updateSetting('frameColour','${c.hex}'); renderSettings();"></div>`
+  ).join('');
+
+  // Highlights
+  state.cover.highlights.forEach((h, i) => {
+    const el = document.getElementById('hl-' + i);
+    if (el && el !== document.activeElement) el.value = h;
+  });
+}
+
+function toggleEditPage(id) {
+  editingPageId = editingPageId === id ? null : id;
+  renderPageList();
+}
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  const panel = document.getElementById('tab-' + name);
+  if (panel) panel.classList.add('active');
+
+  if (name === 'settings') renderSettings();
+  if (name === 'cover') renderCover();
+}
+
+// ===== PREVIEW =====
+function generatePreviewHTML() {
+  const fc = state.frameColour;
+  const fo = state.frameOpacity;
+
+  let pagesHTML = '';
+
+  // Cover
+  const coverBg = state.cover.imageSrc
+    ? `<div class="m-bg"><img src="${state.cover.imageSrc}" alt=""></div>`
+    : `<div class="m-bg"><div style="width:100%;height:100%;background:#333"></div></div>`;
+  const hlItems = state.cover.highlights.filter(h => h).map(h => `<li>${esc(h)}</li>`).join('');
+
+  pagesHTML += `
+    <div class="m-page m-cover active">
+      ${coverBg}
+      <div class="m-content m-content--img">
+        <div class="m-cover-meta">Edition ${esc(state.edition)} / ${esc(state.date)}</div>
+        ${hlItems ? `<ul class="m-highlights">${hlItems}</ul>` : ''}
+      </div>
+    </div>`;
+
+  // Content pages
+  state.pages.forEach(page => {
+    if (page.section === 'thinking') {
+      const bgStyle = `background:${page.backgroundValue || '#f5f5f5'}`;
+      const textClass = isLight(page.backgroundValue) ? 'm-content--clr' : 'm-content--img';
+      pagesHTML += `
+        <div class="m-page m-quote">
+          <div class="m-bg"><div style="width:100%;height:100%;${bgStyle}"></div></div>
+          <div class="m-content ${textClass}">
+            <div class="m-section">Thinking</div>
+            ${page.quote ? `<div class="m-quote-text">"${esc(page.quote)}"</div>` : ''}
+            ${page.author ? `<div class="m-quote-author">- ${esc(page.author)}</div>` : ''}
+          </div>
+        </div>`;
+    } else {
+      const hasBgImg = page.imageSrc;
+      const bg = hasBgImg
+        ? `<div class="m-bg"><img src="${page.imageSrc}" alt=""></div>`
+        : `<div class="m-bg"><div style="width:100%;height:100%;background:${page.backgroundValue || '#fff'}"></div></div>`;
+      const textClass = hasBgImg ? 'm-content--img' : 'm-content--clr';
+      const linkHTML = page.link?.url
+        ? `<a class="m-link" href="${esc(page.link.url)}" target="_blank">${esc(page.link.label || 'Source')} →</a>`
+        : '';
+      pagesHTML += `
+        <div class="m-page">
+          ${bg}
+          <div class="m-content ${textClass}">
+            <div class="m-section">${esc(page.section)}</div>
+            ${page.title ? `<div class="m-title">${esc(page.title)}</div>` : ''}
+            ${page.text ? `<div class="m-text">${esc(page.text)}</div>` : ''}
+            ${linkHTML}
+          </div>
+        </div>`;
+    }
+  });
+
+  // Close page
+  const closeBg = isLight('#fafafa') ? 'm-content--clr' : 'm-content--img';
+  pagesHTML += `
+    <div class="m-page m-close">
+      <div class="m-bg"><div style="width:100%;height:100%;background:#fafafa"></div></div>
+      <div class="m-content m-content--clr">
+        <div class="m-close-msg">${esc(state.close.message)}</div>
+        <div class="m-close-links">
+          ${state.close.subscribeUrl ? `<a href="${esc(state.close.subscribeUrl)}" target="_blank">Get future editions</a>` : ''}
+        </div>
+        <div class="m-close-meta">Edition ${esc(state.edition)} / ${esc(state.date)} / jacoroeloffs.com</div>
+      </div>
+    </div>`;
+
+  const totalPages = 1 + state.pages.length + 1;
+  const barsHTML = Array.from({length: totalPages}, (_, i) =>
+    `<div class="m-bar ${i === 0 ? 'active' : ''}"></div>`
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+${getReaderCSS()}
+:root { --frame-colour: ${fc}; --frame-opacity: ${fo}; }
+</style>
+</head><body>
+<div class="m-frame">
+  <div class="m-progress">${barsHTML}</div>
+  <div class="m-pages">${pagesHTML}</div>
+  <div class="m-tap m-tap--prev"></div>
+  <div class="m-tap m-tap--next"></div>
+</div>
+<script>${getReaderJS()}<\/script>
+</body></html>`;
+}
+
+function getReaderCSS() {
+  return `*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; background: #000; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.m-frame { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.m-pages { position: relative; width: 100%; height: 100%; }
+.m-page { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; overflow: hidden; }
+.m-page.active { opacity: 1; visibility: visible; z-index: 2; }
+.m-page::before { content: ''; position: absolute; inset: 0; border: 14px solid var(--frame-colour, #0E394F); opacity: var(--frame-opacity, 0.9); z-index: 10; pointer-events: none; }
+.m-bg { position: absolute; inset: 0; z-index: 0; }
+.m-bg img, .m-bg video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.m-content { position: relative; z-index: 5; padding: 28px 30px 40px; }
+.m-content--img::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 65%; background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, transparent 100%); z-index: -1; pointer-events: none; }
+.m-content--img { color: #fff; }
+.m-content--clr { color: #111; }
+.m-section { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; opacity: 0.7; }
+.m-title { font-size: 24px; font-weight: 700; line-height: 1.2; margin-bottom: 8px; }
+.m-text { font-size: 15px; line-height: 1.55; opacity: 0.88; max-width: 340px; }
+.m-link { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600; text-decoration: none; color: inherit; opacity: 0.7; border-bottom: 1px solid currentColor; }
+.m-cover .m-content { padding-bottom: 44px; }
+.m-cover-meta { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; opacity: 0.6; margin-bottom: 14px; }
+.m-highlights { list-style: none; }
+.m-highlights li { font-size: 15px; line-height: 1.5; opacity: 0.85; margin-bottom: 4px; }
+.m-quote { justify-content: center; }
+.m-quote .m-content { padding: 60px 34px; }
+.m-quote .m-content::before { display: none; }
+.m-quote-text { font-size: 22px; font-weight: 500; line-height: 1.45; font-style: italic; margin-bottom: 16px; }
+.m-quote-author { font-size: 13px; font-weight: 600; opacity: 0.6; }
+.m-close { justify-content: center; }
+.m-close .m-content { text-align: center; padding: 60px 34px; }
+.m-close .m-content::before { display: none; }
+.m-close-msg { font-size: 20px; font-weight: 600; margin-bottom: 30px; }
+.m-close-links { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.m-close-links a { font-size: 14px; font-weight: 500; text-decoration: none; color: inherit; opacity: 0.65; border-bottom: 1px solid currentColor; }
+.m-close-meta { margin-top: 40px; font-size: 11px; opacity: 0.4; }
+.m-progress { position: absolute; top: 0; left: 0; right: 0; display: flex; gap: 4px; padding: 10px 18px 0; z-index: 20; }
+.m-bar { flex: 1; height: 2px; background: rgba(255,255,255,0.25); border-radius: 1px; }
+.m-bar.visited, .m-bar.active { background: rgba(255,255,255,0.8); }
+.m-tap { position: absolute; top: 0; bottom: 0; z-index: 15; cursor: pointer; }
+.m-tap--prev { left: 0; width: 30%; }
+.m-tap--next { right: 0; width: 70%; }`;
+}
+
+function getReaderJS() {
+  return `(function(){let c=0;const p=document.querySelectorAll('.m-page'),b=document.querySelectorAll('.m-bar'),t=p.length;function s(i){if(i<0||i>=t)return;p[c].classList.remove('active');c=i;p[c].classList.add('active');b.forEach((x,j)=>{x.classList.toggle('visited',j<c);x.classList.toggle('active',j===c)});p.forEach((x,j)=>{const v=x.querySelector('video');if(v){j===c?v.play().catch(()=>{}):v.pause()}});}document.querySelector('.m-tap--next')?.addEventListener('click',()=>s(c+1));document.querySelector('.m-tap--prev')?.addEventListener('click',()=>s(c-1));document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();s(c+1)}if(e.key==='ArrowLeft'){e.preventDefault();s(c-1)}});let sx=0;document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});document.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>50){d<0?s(c+1):s(c-1)}});s(0)})();`;
+}
+
+let previewDebounce = null;
+function updatePreview() {
+  clearTimeout(previewDebounce);
+  previewDebounce = setTimeout(() => {
+    const html = generatePreviewHTML();
+    // Desktop preview
+    const iframe = document.getElementById('preview-iframe');
+    if (iframe) {
+      iframe.srcdoc = html;
+    }
+  }, 300);
+}
+
+function previewFullscreen() {
+  const html = generatePreviewHTML();
+  const overlay = document.getElementById('preview-overlay');
+  const iframe = document.getElementById('preview-fullscreen');
+  iframe.srcdoc = html;
+  overlay.classList.add('active');
+}
+
+function closePreview() {
+  document.getElementById('preview-overlay').classList.remove('active');
+  document.getElementById('preview-fullscreen').srcdoc = '';
+}
+
+// ===== EXPORT: EDITION ZIP =====
+async function exportEdition() {
+  const progressEl = document.getElementById('export-progress');
+  const statusEl = document.getElementById('export-status');
+  const fillEl = document.getElementById('export-fill');
+  progressEl.classList.add('active');
+
+  try {
+    const zip = new JSZip();
+    const assets = zip.folder('assets');
+    let assetMap = {};
+    let totalSteps = 1 + state.pages.length + 1; // cover + pages + html
+    let step = 0;
+
+    function progress(msg) {
+      step++;
+      statusEl.textContent = msg;
+      fillEl.style.width = Math.round((step / totalSteps) * 100) + '%';
+    }
+
+    // Optimise cover image
+    if (state.cover.imageSrc) {
+      progress('Optimising cover image...');
+      try {
+        const blob = await optimiseImage(state.cover.imageSrc, 1080, 0.85);
+        assets.file('cover.jpg', blob);
+        assetMap['cover'] = 'assets/cover.jpg';
+      } catch (e) {
+        console.error('Cover optimisation failed:', e);
+        // Fallback: use original
+        const base64 = state.cover.imageSrc.split(',')[1];
+        assets.file('cover.jpg', base64, {base64: true});
+        assetMap['cover'] = 'assets/cover.jpg';
+      }
+    }
+
+    // Optimise page images
+    for (let i = 0; i < state.pages.length; i++) {
+      const page = state.pages[i];
+      if (page.imageSrc) {
+        progress(`Optimising page ${i + 1} image...`);
+        try {
+          const blob = await optimiseImage(page.imageSrc, 1080, 0.82);
+          const fname = `page-${String(i + 1).padStart(2, '0')}.jpg`;
+          assets.file(fname, blob);
+          assetMap[page.id] = 'assets/' + fname;
+        } catch (e) {
+          console.error(`Page ${i + 1} optimisation failed:`, e);
+          const base64 = page.imageSrc.split(',')[1];
+          const fname = `page-${String(i + 1).padStart(2, '0')}.jpg`;
+          assets.file(fname, base64, {base64: true});
+          assetMap[page.id] = 'assets/' + fname;
+        }
+      }
+    }
+
+    // Generate HTML
+    progress('Generating HTML...');
+    const html = generateExportHTML(assetMap);
+    zip.file('index.html', html);
+
+    // Generate zip
+    statusEl.textContent = 'Creating zip...';
+    const content = await zip.generateAsync({type: 'blob'}, (meta) => {
+      fillEl.style.width = Math.round(80 + (meta.percent / 100) * 20) + '%';
+    });
+
+    // Download
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `edition-${state.edition}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    statusEl.textContent = 'Done! Check your downloads.';
+    fillEl.style.width = '100%';
+    toast('Edition exported');
+
+    setTimeout(() => { progressEl.classList.remove('active'); }, 3000);
+  } catch (e) {
+    statusEl.textContent = 'Export failed: ' + e.message;
+    console.error(e);
+  }
+}
+
+function generateExportHTML(assetMap) {
+  const fc = state.frameColour;
+  const fo = state.frameOpacity;
+  let pagesHTML = '';
+
+  // Cover
+  const coverSrc = assetMap['cover'] || '';
+  const coverBg = coverSrc
+    ? `<div class="m-bg"><img src="${coverSrc}" alt=""></div>`
+    : `<div class="m-bg"><div style="width:100%;height:100%;background:#333"></div></div>`;
+  const hlItems = state.cover.highlights.filter(h => h).map(h => `<li>${esc(h)}</li>`).join('');
+
+  pagesHTML += `
+    <div class="m-page m-cover active">
+      ${coverBg}
+      <div class="m-content m-content--img">
+        <div class="m-cover-meta">Edition ${esc(state.edition)} / ${esc(state.date)}</div>
+        ${hlItems ? `<ul class="m-highlights">${hlItems}</ul>` : ''}
+      </div>
+    </div>`;
+
+  // Content pages
+  state.pages.forEach((page, i) => {
+    const pageSrc = assetMap[page.id] || '';
+    if (page.section === 'thinking') {
+      const bgStyle = `background:${page.backgroundValue || '#f5f5f5'}`;
+      const textClass = isLight(page.backgroundValue) ? 'm-content--clr' : 'm-content--img';
+      pagesHTML += `
+        <div class="m-page m-quote">
+          <div class="m-bg"><div style="width:100%;height:100%;${bgStyle}"></div></div>
+          <div class="m-content ${textClass}">
+            <div class="m-section">Thinking</div>
+            ${page.quote ? `<div class="m-quote-text">"${esc(page.quote)}"</div>` : ''}
+            ${page.author ? `<div class="m-quote-author">- ${esc(page.author)}</div>` : ''}
+          </div>
+        </div>`;
+    } else {
+      const bg = pageSrc
+        ? `<div class="m-bg"><img src="${pageSrc}" alt=""></div>`
+        : `<div class="m-bg"><div style="width:100%;height:100%;background:${page.backgroundValue || '#fff'}"></div></div>`;
+      const textClass = pageSrc ? 'm-content--img' : 'm-content--clr';
+      const linkHTML = page.link?.url
+        ? `<a class="m-link" href="${esc(page.link.url)}" target="_blank">${esc(page.link.label || 'Source')} →</a>`
+        : '';
+      pagesHTML += `
+        <div class="m-page">
+          ${bg}
+          <div class="m-content ${textClass}">
+            <div class="m-section">${esc(page.section)}</div>
+            ${page.title ? `<div class="m-title">${esc(page.title)}</div>` : ''}
+            ${page.text ? `<div class="m-text">${esc(page.text)}</div>` : ''}
+            ${linkHTML}
+          </div>
+        </div>`;
+    }
+  });
+
+  // Close
+  pagesHTML += `
+    <div class="m-page m-close">
+      <div class="m-bg"><div style="width:100%;height:100%;background:#fafafa"></div></div>
+      <div class="m-content m-content--clr">
+        <div class="m-close-msg">${esc(state.close.message)}</div>
+        <div class="m-close-links">
+          ${state.close.subscribeUrl ? `<a href="${esc(state.close.subscribeUrl)}" target="_blank">Get future editions</a>` : ''}
+        </div>
+        <div class="m-close-meta">Edition ${esc(state.edition)} / ${esc(state.date)} / jacoroeloffs.com</div>
+      </div>
+    </div>`;
+
+  const totalPages = 1 + state.pages.length + 1;
+  const barsHTML = Array.from({length: totalPages}, (_, i) =>
+    `<div class="m-bar ${i === 0 ? 'active' : ''}"></div>`
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Malleable - Edition ${esc(state.edition)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+${getReaderCSS()}
+:root { --frame-colour: ${fc}; --frame-opacity: ${fo}; }
+</style>
+</head>
+<body>
+<div class="m-frame">
+  <div class="m-progress">${barsHTML}</div>
+  <div class="m-pages">${pagesHTML}</div>
+  <div class="m-tap m-tap--prev"></div>
+  <div class="m-tap m-tap--next"></div>
+</div>
+<script>${getReaderJS()}</script>
+</body>
+</html>`;
+}
+
+// ===== EXPORT: COVER IMAGE =====
+async function exportCoverImage() {
+  if (!state.cover.imageSrc) {
+    toast('Add a cover image first');
+    return;
+  }
+
+  const canvas = document.createElement('canvas');
+  const W = 1080;
+  const H = Math.round(W * (16/9));
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Draw background image
+  const img = new Image();
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+    img.src = state.cover.imageSrc;
+  });
+
+  // Cover fill
+  const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+  const sw = img.naturalWidth * scale;
+  const sh = img.naturalHeight * scale;
+  ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
+
+  // Frame border
+  const borderW = Math.round(14 * (W / 390));
+  ctx.save();
+  ctx.globalAlpha = state.frameOpacity;
+  ctx.strokeStyle = state.frameColour;
+  ctx.lineWidth = borderW * 2;
+  ctx.strokeRect(0, 0, W, H);
+  ctx.restore();
+
+  // Text area gradient
+  ctx.save();
+  const grad = ctx.createLinearGradient(0, H * 0.5, 0, H);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.35)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.72)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // Edition meta
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '500 ' + Math.round(11 * W / 390) + 'px Inter, sans-serif';
+  ctx.fillText(`Edition ${state.edition} / ${state.date}`, Math.round(30 * W / 390), H - Math.round(120 * W / 390));
+
+  // Highlights
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '400 ' + Math.round(15 * W / 390) + 'px Inter, sans-serif';
+  state.cover.highlights.filter(h => h).forEach((h, i) => {
+    ctx.fillText(h, Math.round(30 * W / 390), H - Math.round((90 - i * 26) * W / 390));
+  });
+
+  // MALLEABLE logo text (simple approach)
+  ctx.fillStyle = state.logoVariant === 'white' ? '#fff' : '#000';
+  ctx.font = '700 ' + Math.round(14 * W / 390) + 'px Inter, sans-serif';
+  ctx.letterSpacing = '0.15em';
+  ctx.fillText('MALLEABLE', Math.round(30 * W / 390), Math.round(54 * W / 390));
+
+  // Export
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `malleable-${state.edition}-cover.jpg`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Cover image downloaded');
+  }, 'image/jpeg', 0.9);
+}
+
+// ===== EXPORT/IMPORT JSON =====
+function exportJSON() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `malleable-${state.edition}-draft.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Draft exported as JSON');
+}
+
+async function importJSON(input) {
+  if (!input.files[0]) return;
+  try {
+    const text = await input.files[0].text();
+    const data = JSON.parse(text);
+    if (data.edition !== undefined && data.pages !== undefined) {
+      state = { ...defaultState(), ...data };
+      editingPageId = null;
+      scheduleSave();
+      renderAll();
+      toast('Draft imported');
+    } else {
+      toast('Invalid draft file');
+    }
+  } catch (e) {
+    toast('Import failed: ' + e.message);
+  }
+  input.value = '';
+}
+
+// ===== RESET =====
+function resetDraft() {
+  if (!confirm('Start a new edition? This clears all current content.')) return;
+  state = defaultState();
+  editingPageId = null;
+  saveDraft();
+  renderAll();
+  toast('New edition started');
+}
+
+// ===== UTILITIES =====
+function esc(s) {
+  if (!s) return '';
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function isLight(hex) {
+  if (!hex) return true;
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ===== INIT =====
+function renderAll() {
+  renderPageList();
+  renderSettings();
+  renderCover();
+  updatePreview();
+}
+
+async function init() {
+  const saved = await loadDraft();
+  if (saved) {
+    state = { ...defaultState(), ...saved };
+    document.getElementById('status-text').textContent = 'Draft loaded';
+  }
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>

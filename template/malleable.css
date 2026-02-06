@@ -1,495 +1,111 @@
-/* Malleable Micro Magazine
-   Version 1.0
-   Mobile-first tap-through magazine format
-*/
+/* Malleable Reader v1.0 - February 2026 */
 
-/* ============================================
-   RESET & BASE
-   ============================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  height: 100%;
-  height: -webkit-fill-available;
-}
-
-body {
-  min-height: 100%;
-  min-height: -webkit-fill-available;
-  overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+html, body {
+  height: 100%; width: 100%; overflow: hidden;
   background: #000;
-  color: #1a1a1a;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y;
+  user-select: none; -webkit-user-select: none;
 }
 
-/* ============================================
-   MAGAZINE CONTAINER
-   ============================================ */
+/* Desktop phone frame */
+.m-frame { width: 100%; height: 100%; position: relative; overflow: hidden; }
 
-.magazine {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-}
-
-/* ============================================
-   PROGRESS BAR (inside frame)
-   ============================================ */
-
-.progress {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.2);
-  z-index: 100;
-  border-radius: 2px;
-}
-
-.progress-bar {
-  height: 100%;
-  background: #fff;
-  width: 0%;
-  transition: width 0.3s ease-out;
-  will-change: width;
-  border-radius: 2px;
-}
-
-/* Adjust for larger frame on desktop */
-@media (min-width: 768px) {
-  .progress {
-    top: 24px;
-    left: 24px;
-    right: 24px;
+@media (min-width: 600px) {
+  body { display: flex; align-items: center; justify-content: center; background: #111; }
+  .m-frame {
+    width: 390px; height: 844px; max-height: 95vh;
+    border-radius: 40px; overflow: hidden;
+    box-shadow: 0 0 0 8px #222, 0 20px 60px rgba(0,0,0,0.5);
   }
 }
 
-/* ============================================
-   NAVIGATION HINTS
-   ============================================ */
+/* Pages */
+.m-pages { position: relative; width: 100%; height: 100%; }
 
-.nav-hint {
-  position: fixed;
-  top: 50%;
-  left: 0;
-  right: 0;
-  transform: translateY(-50%);
-  display: flex;
-  justify-content: space-between;
-  padding: 0 8px;
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0.4;
-  transition: opacity 0.6s ease;
-}
-
-.nav-hint.hidden {
-  opacity: 0;
-}
-
-.hint-left,
-.hint-right {
-  font-size: 2rem;
-  font-weight: 300;
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-/* ============================================
-   PAGES CONTAINER
-   ============================================ */
-
-.pages {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  max-width: 430px;
-  max-height: 932px;
-}
-
-/* On very wide screens, show phone-like frame */
-@media (min-width: 768px) and (min-height: 600px) {
-  .pages {
-    border-radius: 32px;
-    overflow: hidden;
-    box-shadow: 
-      0 0 0 8px #1a1a1a,
-      0 25px 80px rgba(0, 0, 0, 0.6);
-  }
-}
-
-/* ============================================
-   INDIVIDUAL PAGE
-   ============================================ */
-
-.page {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.35s ease-out, visibility 0.35s ease-out;
-  will-change: opacity;
-}
-
-.page.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Touch targets for navigation */
-.page::before,
-.page::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 35%;
-  z-index: 30;
-  cursor: pointer;
-}
-
-.page::before {
-  left: 0;
-}
-
-.page::after {
-  right: 0;
-}
-
-/* ============================================
-   FRAME (National Geographic border)
-   ============================================ */
-
-.frame {
-  position: absolute;
-  inset: 0;
-  padding: 16px;
-  background: var(--frame-colour, #0E394F);
-}
-
-.frame-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Larger frame on bigger screens */
-@media (min-width: 768px) {
-  .frame {
-    padding: 20px;
-  }
-}
-
-/* ============================================
-   COVER PAGE
-   ============================================ */
-
-.page-cover .frame-inner {
-  background: #000;
-}
-
-/* Cover media (video or image) */
-.cover-media {
-  position: absolute;
-  inset: 0;
+.m-page {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
   overflow: hidden;
 }
+.m-page.active { opacity: 1; visibility: visible; z-index: 2; }
 
-.cover-video,
-.cover-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* Frame border */
+.m-page::before {
+  content: ''; position: absolute; inset: 0;
+  border: 14px solid var(--frame-colour, #0E394F);
+  opacity: var(--frame-opacity, 0.9);
+  z-index: 10; pointer-events: none;
+}
+@media (min-width: 600px) { .m-page::before { border-radius: 32px; } }
+
+/* Backgrounds */
+.m-bg { position: absolute; inset: 0; z-index: 0; }
+.m-bg img, .m-bg video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Text content */
+.m-content { position: relative; z-index: 5; padding: 28px 30px 40px; }
+.m-content--img::before {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 65%;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, transparent 100%);
+  z-index: -1; pointer-events: none;
+}
+.m-content--img { color: #fff; }
+.m-content--clr { color: #111; }
+
+.m-section {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; margin-bottom: 10px; opacity: 0.7;
+}
+.m-title { font-size: 24px; font-weight: 700; line-height: 1.2; margin-bottom: 8px; }
+.m-text { font-size: 15px; line-height: 1.55; opacity: 0.88; max-width: 340px; }
+.m-link {
+  display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600;
+  text-decoration: none; color: inherit; opacity: 0.7;
+  border-bottom: 1px solid currentColor; padding-bottom: 1px;
 }
 
-/* Cover overlay */
-.cover-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  z-index: 10;
+/* Cover */
+.m-cover .m-content { padding-bottom: 44px; }
+.m-logo { position: absolute; top: 44px; left: 30px; z-index: 5; height: 18px; width: auto; }
+@media (min-width: 600px) { .m-logo { top: 56px; } }
+.m-cover-meta { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; opacity: 0.6; margin-bottom: 14px; }
+.m-highlights { list-style: none; }
+.m-highlights li { font-size: 15px; line-height: 1.5; opacity: 0.85; margin-bottom: 4px; }
+
+/* Quote page */
+.m-quote { justify-content: center; }
+.m-quote .m-content { padding: 60px 34px; }
+.m-quote .m-content::before { display: none; }
+.m-quote-text { font-size: 22px; font-weight: 500; line-height: 1.45; font-style: italic; margin-bottom: 16px; }
+.m-quote-author { font-size: 13px; font-weight: 600; opacity: 0.6; }
+
+/* Close page */
+.m-close { justify-content: center; }
+.m-close .m-content { text-align: center; padding: 60px 34px; }
+.m-close .m-content::before { display: none; }
+.m-close-msg { font-size: 20px; font-weight: 600; margin-bottom: 30px; }
+.m-close-links { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.m-close-links a {
+  font-size: 14px; font-weight: 500; text-decoration: none; color: inherit;
+  opacity: 0.65; border-bottom: 1px solid currentColor;
 }
+.m-close-meta { margin-top: 40px; font-size: 11px; opacity: 0.4; }
 
-/* Masthead (logo) */
-.masthead {
-  padding: 24px 20px 16px;
-  text-align: center;
+/* Progress bars */
+.m-progress {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; gap: 4px; padding: 10px 18px 0; z-index: 20;
 }
+.m-bar { flex: 1; height: 2px; background: rgba(255,255,255,0.25); border-radius: 1px; }
+.m-bar.visited, .m-bar.active { background: rgba(255,255,255,0.8); }
 
-.masthead img {
-  height: 48px;
-  width: auto;
-  max-width: 80%;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-/* Cover spacer pushes content down */
-.cover-spacer {
-  flex: 1;
-}
-
-/* Featured articles */
-.cover-articles {
-  padding: 16px;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.75) 0%,
-    rgba(0, 0, 0, 0.4) 70%,
-    rgba(0, 0, 0, 0) 100%
-  );
-}
-
-.cover-article {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: 8px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.cover-article:last-child {
-  margin-bottom: 0;
-}
-
-/* Cover meta (edition, date) */
-.cover-meta {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 16px;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(0, 0, 0, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* ============================================
-   CONTENT PAGES
-   ============================================ */
-
-/* Section label */
-.section-label {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #999;
-  padding: 16px 16px 8px;
-}
-
-/* Page image */
-.page-image {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.page-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.page-image.full {
-  flex: none;
-  height: 55%;
-}
-
-/* Page text */
-.page-text {
-  padding: 16px;
-}
-
-.page-text h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #1a1a1a;
-}
-
-.page-text p {
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: #444;
-  margin-bottom: 12px;
-}
-
-.page-text p:last-child {
-  margin-bottom: 0;
-}
-
-/* Full-page text */
-.page-text-full {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.page-text.centred {
-  text-align: center;
-  padding: 32px 24px;
-}
-
-.page-text.centred p {
-  font-size: 1rem;
-}
-
-/* Page caption (for images) */
-.page-caption {
-  padding: 12px 16px;
-  background: #f7f7f7;
-  border-top: 1px solid #eee;
-}
-
-.page-caption p {
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: #666;
-  margin: 0;
-}
-
-/* ============================================
-   QUOTE PAGE
-   ============================================ */
-
-.page-quote {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 32px 24px;
-  text-align: center;
-}
-
-.page-quote p {
-  font-size: 1.25rem;
-  font-style: italic;
-  line-height: 1.45;
-  color: #1a1a1a;
-  margin-bottom: 20px;
-}
-
-.page-quote cite {
-  font-size: 0.875rem;
-  font-style: normal;
-  font-weight: 500;
-  color: #888;
-}
-
-/* ============================================
-   CLOSE PAGE
-   ============================================ */
-
-.page-close .frame-inner {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  background: #fafafa;
-}
-
-.close-content {
-  padding: 32px;
-}
-
-.close-message {
-  font-size: 1.125rem;
-  font-weight: 500;
-  color: #1a1a1a;
-  margin-bottom: 24px;
-}
-
-.close-link {
-  margin-bottom: 32px;
-}
-
-.close-link a {
-  color: var(--frame-colour, #0E394F);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 1rem;
-}
-
-.close-link a:hover {
-  text-decoration: underline;
-}
-
-.edition-info {
-  font-size: 0.75rem;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* ============================================
-   UTILITIES
-   ============================================ */
-
-/* Visually hidden but accessible */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* ============================================
-   REDUCED MOTION
-   ============================================ */
-
-@media (prefers-reduced-motion: reduce) {
-  .page,
-  .progress-bar {
-    transition: none;
-  }
-}
-
-/* ============================================
-   PRINT (probably won't use, but nice to have)
-   ============================================ */
-
-@media print {
-  .magazine {
-    position: static;
-  }
-  
-  .progress,
-  .nav-hint {
-    display: none;
-  }
-  
-  .page {
-    position: static;
-    opacity: 1;
-    visibility: visible;
-    page-break-after: always;
-  }
-}
+/* Tap zones */
+.m-tap { position: absolute; top: 0; bottom: 0; z-index: 15; cursor: pointer; }
+.m-tap--prev { left: 0; width: 30%; }
+.m-tap--next { right: 0; width: 70%; }
