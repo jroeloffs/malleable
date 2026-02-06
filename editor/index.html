@@ -343,6 +343,26 @@ select.field-input { appearance: none; background-image: url("data:image/svg+xml
             <label class="field-label">Subscribe URL</label>
             <input class="field-input" type="url" placeholder="https://jacoroeloffs.com/#/portal/signup" id="set-close-url" oninput="updateClose('subscribeUrl', this.value)">
           </div>
+          <div class="field">
+            <label class="field-label">Subscribe link label</label>
+            <input class="field-input" type="text" placeholder="Get future editions" id="set-close-subscribe-label" oninput="updateClose('subscribeLabel', this.value)">
+          </div>
+          <div class="field">
+            <label class="field-label">Share URL</label>
+            <input class="field-input" type="url" placeholder="https://malleable.jacoroeloffs.com/..." id="set-close-share-url" oninput="updateClose('shareUrl', this.value)">
+          </div>
+          <div class="field">
+            <label class="field-label">Share link label</label>
+            <input class="field-input" type="text" placeholder="Send this edition to a friend" id="set-close-share-label" oninput="updateClose('shareLabel', this.value)">
+          </div>
+          <div class="field">
+            <label class="field-label">Background colour</label>
+            <input class="field-input" type="color" value="#fafafa" id="set-close-bg" oninput="updateClose('bgColour', this.value)" style="height:44px;padding:4px;">
+          </div>
+          <div class="field">
+            <label class="field-label">Footer text</label>
+            <input class="field-input" type="text" placeholder="jacoroeloffs.com" id="set-close-footer" oninput="updateClose('footerText', this.value)">
+          </div>
         </div>
         <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #2a2a2a;">
           <button class="btn-sm btn-sm--primary" onclick="resetDraft()" style="width:100%;padding:12px;">New edition (clear draft)</button>
@@ -418,7 +438,7 @@ select.field-input { appearance: none; background-image: url("data:image/svg+xml
   <!-- DESKTOP PREVIEW -->
   <div class="preview-panel">
     <div class="phone-frame">
-      <iframe id="preview-iframe" sandbox="allow-same-origin"></iframe>
+      <iframe id="preview-iframe" sandbox="allow-same-origin allow-scripts"></iframe>
     </div>
   </div>
 </div>
@@ -426,7 +446,7 @@ select.field-input { appearance: none; background-image: url("data:image/svg+xml
 <!-- FULLSCREEN PREVIEW -->
 <div class="preview-overlay" id="preview-overlay">
   <button class="preview-close" onclick="closePreview()">✕</button>
-  <iframe id="preview-fullscreen" sandbox="allow-same-origin"></iframe>
+  <iframe id="preview-fullscreen" sandbox="allow-same-origin allow-scripts"></iframe>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -461,8 +481,13 @@ function defaultState() {
     pages: [],
     close: {
       message: 'See you next quarter.',
+      subscribeUrl: 'https://jacoroeloffs.com/#/portal/signup',
+      subscribeLabel: 'Get future editions',
+      shareUrl: '',
+      shareLabel: 'Send this edition to a friend',
       shareText: '',
-      subscribeUrl: 'https://jacoroeloffs.com/#/portal/signup'
+      bgColour: '#fafafa',
+      footerText: 'jacoroeloffs.com'
     }
   };
 }
@@ -550,6 +575,7 @@ function adjustLogoSize(delta) {
 function updateClose(key, value) {
   state.close[key] = value;
   scheduleSave();
+  updatePreview();
 }
 
 // ===== PAGE MANAGEMENT =====
@@ -615,6 +641,16 @@ function updatePage(id, key, value) {
       card.className = value ? 'page-info-title' : 'page-info-empty';
     }
   }
+  updatePreview();
+}
+
+function updatePageLink(id, field, value) {
+  const page = state.pages.find(p => p.id === id);
+  if (!page) return;
+  if (!page.link) page.link = { url: '', label: '' };
+  page.link[field] = value;
+  if (!page.link.url && !page.link.label) page.link = null;
+  scheduleSave();
   updatePreview();
 }
 
@@ -769,7 +805,11 @@ function renderPageEditor(page) {
         </div>
         <div class="field">
           <label class="field-label">Link URL</label>
-          <input class="field-input" type="url" placeholder="https://..." value="${esc(page.link?.url || '')}" oninput="updatePage('${page.id}', 'link', this.value ? {url:this.value, label: '${page.link?.label || 'Source'}'} : null)">
+          <input class="field-input" type="url" placeholder="https://..." value="${esc(page.link?.url || '')}" oninput="updatePageLink('${page.id}', 'url', this.value)">
+        </div>
+        <div class="field">
+          <label class="field-label">Link label</label>
+          <input class="field-input" type="text" placeholder="Source" value="${esc(page.link?.label || '')}" oninput="updatePageLink('${page.id}', 'label', this.value)">
         </div>
       `}
 
@@ -827,6 +867,11 @@ function renderSettings() {
   document.getElementById('set-logo').value = state.logoVariant;
   document.getElementById('set-close-msg').value = state.close.message;
   document.getElementById('set-close-url').value = state.close.subscribeUrl;
+  document.getElementById('set-close-subscribe-label').value = state.close.subscribeLabel || '';
+  document.getElementById('set-close-share-url').value = state.close.shareUrl || '';
+  document.getElementById('set-close-share-label').value = state.close.shareLabel || '';
+  document.getElementById('set-close-bg').value = state.close.bgColour || '#fafafa';
+  document.getElementById('set-close-footer').value = state.close.footerText || '';
 
   const presetsEl = document.getElementById('colour-presets');
   presetsEl.innerHTML = COLOURS.map(c =>
@@ -934,16 +979,23 @@ function generatePreviewHTML() {
   });
 
   // Close page
-  const closeBg = isLight('#fafafa') ? 'm-content--clr' : 'm-content--img';
+  const closeBgColour = state.close.bgColour || '#fafafa';
+  const closeTextClass = isLight(closeBgColour) ? 'm-content--clr' : 'm-content--img';
+  const subscribeLink = state.close.subscribeUrl
+    ? `<a href="${esc(state.close.subscribeUrl)}" target="_blank">${esc(state.close.subscribeLabel || 'Get future editions')}</a>` : '';
+  const shareLink = state.close.shareUrl
+    ? `<a href="${esc(state.close.shareUrl)}" target="_blank">${esc(state.close.shareLabel || 'Send this edition to a friend')}</a>` : '';
+  const closeFooter = state.close.footerText || 'jacoroeloffs.com';
   pagesHTML += `
     <div class="m-page m-close">
-      <div class="m-bg"><div style="width:100%;height:100%;background:#fafafa"></div></div>
-      <div class="m-content m-content--clr">
+      <div class="m-bg"><div style="width:100%;height:100%;background:${closeBgColour}"></div></div>
+      <div class="m-content ${closeTextClass}">
         <div class="m-close-msg">${esc(state.close.message)}</div>
         <div class="m-close-links">
-          ${state.close.subscribeUrl ? `<a href="${esc(state.close.subscribeUrl)}" target="_blank">Get future editions</a>` : ''}
+          ${subscribeLink}
+          ${shareLink}
         </div>
-        <div class="m-close-meta">Edition ${esc(state.edition)} / ${esc(state.date)} / jacoroeloffs.com</div>
+        <div class="m-close-meta">Edition ${esc(state.edition)} / ${esc(state.date)} / ${esc(closeFooter)}</div>
       </div>
     </div>`;
 
@@ -1219,15 +1271,23 @@ function generateExportHTML(assetMap) {
   });
 
   // Close
+  const expCloseBg = state.close.bgColour || '#fafafa';
+  const expCloseText = isLight(expCloseBg) ? 'm-content--clr' : 'm-content--img';
+  const expSubLink = state.close.subscribeUrl
+    ? `<a href="${esc(state.close.subscribeUrl)}" target="_blank">${esc(state.close.subscribeLabel || 'Get future editions')}</a>` : '';
+  const expShareLink = state.close.shareUrl
+    ? `<a href="${esc(state.close.shareUrl)}" target="_blank">${esc(state.close.shareLabel || 'Send this edition to a friend')}</a>` : '';
+  const expFooter = state.close.footerText || 'jacoroeloffs.com';
   pagesHTML += `
     <div class="m-page m-close">
-      <div class="m-bg"><div style="width:100%;height:100%;background:#fafafa"></div></div>
-      <div class="m-content m-content--clr">
+      <div class="m-bg"><div style="width:100%;height:100%;background:${expCloseBg}"></div></div>
+      <div class="m-content ${expCloseText}">
         <div class="m-close-msg">${esc(state.close.message)}</div>
         <div class="m-close-links">
-          ${state.close.subscribeUrl ? `<a href="${esc(state.close.subscribeUrl)}" target="_blank">Get future editions</a>` : ''}
+          ${expSubLink}
+          ${expShareLink}
         </div>
-        <div class="m-close-meta">Edition ${esc(state.edition)} / ${esc(state.date)} / jacoroeloffs.com</div>
+        <div class="m-close-meta">Edition ${esc(state.edition)} / ${esc(state.date)} / ${esc(expFooter)}</div>
       </div>
     </div>`;
 
