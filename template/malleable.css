@@ -158,7 +158,7 @@ body {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 30%;
+  width: 35%;
   z-index: 30;
   cursor: pointer;
 }
@@ -179,7 +179,7 @@ body {
   position: absolute;
   inset: 0;
   padding: 16px;
-  background: var(--frame-colour, #4A90A4);
+  background: var(--frame-colour, #0E394F);
 }
 
 .frame-inner {
@@ -427,7 +427,7 @@ body {
 }
 
 .close-link a {
-  color: var(--frame-colour, #4A90A4);
+  color: var(--frame-colour, #0E394F);
   text-decoration: none;
   font-weight: 500;
   font-size: 1rem;

@@ -14,17 +14,20 @@
   let touchStartX = 0;
   let touchStartY = 0;
   let touchStartTime = 0;
+  let lastTouchEnd = 0; // Tracks last touch to prevent double-firing
 
   // Elements
   let magazine;
   let pages;
+  let pagesContainer;
   let progressBar;
   let navHint;
 
   // Configuration
   const SWIPE_THRESHOLD = 50;
   const SWIPE_TIME_LIMIT = 300;
-  const TAP_ZONE_WIDTH = 0.35; // 35% of screen width for tap zones
+  const TAP_ZONE_WIDTH = 0.35; // 35% of container width for tap zones
+  const TOUCH_CLICK_DELAY = 300; // Delay to prevent touch+click double-firing
 
   /**
    * Initialise the magazine
@@ -34,6 +37,7 @@
     if (!magazine) return;
 
     pages = Array.from(document.querySelectorAll('.page'));
+    pagesContainer = document.querySelector('.pages');
     progressBar = document.querySelector('.progress-bar');
     navHint = document.querySelector('.nav-hint');
     totalPages = pages.length;
@@ -87,6 +91,8 @@
    * Handle touch end
    */
   function handleTouchEnd(e) {
+    lastTouchEnd = Date.now();
+
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const touchEndTime = Date.now();
@@ -96,8 +102,8 @@
     const deltaTime = touchEndTime - touchStartTime;
 
     // Check if it's a swipe
-    if (Math.abs(deltaX) > SWIPE_THRESHOLD && 
-        Math.abs(deltaX) > Math.abs(deltaY) && 
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD &&
+        Math.abs(deltaX) > Math.abs(deltaY) &&
         deltaTime < SWIPE_TIME_LIMIT) {
       // Swipe detected
       if (deltaX < 0) {
@@ -108,12 +114,14 @@
       return;
     }
 
-    // Otherwise treat as tap
-    const screenWidth = window.innerWidth;
-    
-    if (touchEndX < screenWidth * TAP_ZONE_WIDTH) {
+    // Otherwise treat as tap - calculate relative to magazine container
+    const rect = pagesContainer ? pagesContainer.getBoundingClientRect() : magazine.getBoundingClientRect();
+    const relativeX = touchEndX - rect.left;
+    const containerWidth = rect.width;
+
+    if (relativeX < containerWidth * TAP_ZONE_WIDTH) {
       prevPage();
-    } else if (touchEndX > screenWidth * (1 - TAP_ZONE_WIDTH)) {
+    } else if (relativeX > containerWidth * (1 - TAP_ZONE_WIDTH)) {
       nextPage();
     }
     // Middle tap does nothing (allows interaction with content)
@@ -126,12 +134,17 @@
     // Ignore if clicking a link or button
     if (e.target.closest('a, button')) return;
 
-    const screenWidth = window.innerWidth;
-    const clickX = e.clientX;
+    // Prevent double-firing after touch events on hybrid devices
+    if (Date.now() - lastTouchEnd < TOUCH_CLICK_DELAY) return;
 
-    if (clickX < screenWidth * TAP_ZONE_WIDTH) {
+    // Calculate relative to magazine container, not window
+    const rect = pagesContainer ? pagesContainer.getBoundingClientRect() : magazine.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    const containerWidth = rect.width;
+
+    if (relativeX < containerWidth * TAP_ZONE_WIDTH) {
       prevPage();
-    } else if (clickX > screenWidth * (1 - TAP_ZONE_WIDTH)) {
+    } else if (relativeX > containerWidth * (1 - TAP_ZONE_WIDTH)) {
       nextPage();
     }
   }
