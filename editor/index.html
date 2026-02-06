@@ -289,6 +289,14 @@ select.field-input { appearance: none; background-image: url("data:image/svg+xml
             <input class="field-input" placeholder="Thinking: ..." oninput="updateHighlight(2, this.value)" id="hl-2">
           </div>
         </div>
+        <div class="field">
+          <label class="field-label">Highlight text size</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-sm" onclick="adjustHighlightSize(-1)" style="width:40px;padding:8px;font-size:16px;">−</button>
+            <span id="hl-size-display" style="font-size:14px;font-weight:600;min-width:40px;text-align:center;">14px</span>
+            <button class="btn-sm" onclick="adjustHighlightSize(1)" style="width:40px;padding:8px;font-size:16px;">+</button>
+          </div>
+        </div>
       </div>
 
       <!-- SETTINGS TAB -->
@@ -364,6 +372,12 @@ select.field-input { appearance: none; background-image: url("data:image/svg+xml
             <input type="file" id="import-json" accept=".json" style="display:none" onchange="importJSON(this)">
           </div>
         </div>
+
+        <div class="export-section" style="border-top:1px solid #2a2a2a;padding-top:20px;margin-top:8px;">
+          <h3>Clear draft</h3>
+          <p>Wipe the current draft completely and start fresh.</p>
+          <button class="export-btn" onclick="resetDraft()" style="background:#9C1C29;color:#fff;">Clear everything and start over</button>
+        </div>
       </div>
     </div>
 
@@ -431,7 +445,9 @@ function defaultState() {
     logoVariant: 'white',
     cover: {
       imageSrc: null,
-      highlights: ['', '', '']
+      mediaType: 'image',
+      highlights: ['', '', ''],
+      highlightSize: 14
     },
     pages: [],
     close: {
@@ -500,6 +516,15 @@ function updateSetting(key, value) {
 
 function updateHighlight(idx, value) {
   state.cover.highlights[idx] = value;
+  scheduleSave();
+  updatePreview();
+}
+
+function adjustHighlightSize(delta) {
+  const current = state.cover.highlightSize || 14;
+  const next = Math.max(8, Math.min(24, current + delta));
+  state.cover.highlightSize = next;
+  document.getElementById('hl-size-display').textContent = next + 'px';
   scheduleSave();
   updatePreview();
 }
@@ -591,8 +616,11 @@ function readFileAsDataURL(file) {
 
 async function handleCoverImage(input) {
   if (!input.files[0]) return;
-  const src = await readFileAsDataURL(input.files[0]);
+  const file = input.files[0];
+  const isVideo = file.type.startsWith('video/');
+  const src = await readFileAsDataURL(file);
   state.cover.imageSrc = src;
+  state.cover.mediaType = isVideo ? 'video' : 'image';
   scheduleSave();
   renderCover();
   updatePreview();
@@ -600,6 +628,7 @@ async function handleCoverImage(input) {
 
 function removeCoverImage() {
   state.cover.imageSrc = null;
+  state.cover.mediaType = 'image';
   document.getElementById('cover-file').value = '';
   scheduleSave();
   renderCover();
@@ -747,16 +776,29 @@ function renderPageEditor(page) {
 
 function renderCover() {
   const el = document.getElementById('cover-upload');
+  // Remove any previous media
+  el.querySelector('img')?.remove();
+  el.querySelector('video')?.remove();
+
   if (state.cover.imageSrc) {
     el.classList.add('has-image');
-    el.querySelector('img')?.remove();
-    const img = document.createElement('img');
-    img.src = state.cover.imageSrc;
-    el.insertBefore(img, el.firstChild);
     el.querySelector('span').style.display = 'none';
+    if (state.cover.mediaType === 'video') {
+      const vid = document.createElement('video');
+      vid.src = state.cover.imageSrc;
+      vid.muted = true;
+      vid.autoplay = true;
+      vid.loop = true;
+      vid.playsInline = true;
+      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      el.insertBefore(vid, el.firstChild);
+    } else {
+      const img = document.createElement('img');
+      img.src = state.cover.imageSrc;
+      el.insertBefore(img, el.firstChild);
+    }
   } else {
     el.classList.remove('has-image');
-    el.querySelector('img')?.remove();
     el.querySelector('span').style.display = '';
   }
 }
@@ -784,6 +826,10 @@ function renderSettings() {
     const el = document.getElementById('hl-' + i);
     if (el && el !== document.activeElement) el.value = h;
   });
+
+  // Highlight size
+  const hlSizeEl = document.getElementById('hl-size-display');
+  if (hlSizeEl) hlSizeEl.textContent = (state.cover.highlightSize || 14) + 'px';
 }
 
 function toggleEditPage(id) {
@@ -810,15 +856,19 @@ function generatePreviewHTML() {
   let pagesHTML = '';
 
   // Cover
+  const isVideo = state.cover.mediaType === 'video';
   const coverBg = state.cover.imageSrc
-    ? `<div class="m-bg"><img src="${state.cover.imageSrc}" alt=""></div>`
+    ? (isVideo
+      ? `<div class="m-bg"><video src="${state.cover.imageSrc}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`
+      : `<div class="m-bg"><img src="${state.cover.imageSrc}" alt=""></div>`)
     : `<div class="m-bg"><div style="width:100%;height:100%;background:#333"></div></div>`;
-  const hlItems = state.cover.highlights.filter(h => h).map(h => `<li>${esc(h)}</li>`).join('');
+  const hlItems = state.cover.highlights.filter(h => h).map(h => `<li style="font-size:${state.cover.highlightSize || 14}px">${esc(h)}</li>`).join('');
+  const logoFile = state.logoVariant === 'black' ? '../template/MALLEABLE-Logo-bl.png' : '../template/MALLEABLE-Logo-wh.png';
 
   pagesHTML += `
     <div class="m-page m-cover active">
       ${coverBg}
-      <div class="m-cover-logo m-cover-logo--${esc(state.logoVariant)}"><span>MALLEABLE</span></div>
+      <div class="m-cover-logo"><img src="${logoFile}" alt="MALLEABLE"></div>
       <div class="m-content m-content--img">
         ${hlItems ? `<ul class="m-highlights">${hlItems}</ul>` : ''}
         <div class="m-cover-meta"><span>Edition ${esc(state.edition)}</span><span>${esc(state.date)}</span></div>
@@ -919,10 +969,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #000; font
 .m-text { font-size: 15px; line-height: 1.55; opacity: 0.88; max-width: 340px; }
 .m-link { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600; text-decoration: none; color: inherit; opacity: 0.7; border-bottom: 1px solid currentColor; }
 .m-cover .m-content { padding-bottom: 44px; }
-.m-cover-logo { position: absolute; top: 0; left: 0; right: 0; z-index: 12; text-align: center; padding-top: 32px; pointer-events: none; }
-.m-cover-logo span { font-size: 28px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0,0,0,0.35); }
-.m-cover-logo--white span { color: #fff; }
-.m-cover-logo--black span { color: #000; }
+.m-cover-logo { position: absolute; top: 0; left: 0; right: 0; z-index: 12; text-align: center; padding-top: 28px; pointer-events: none; }
+.m-cover-logo img { height: 28px; width: auto; filter: drop-shadow(0 1px 6px rgba(0,0,0,0.3)); }
 .m-cover-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; opacity: 0.6; margin-bottom: 14px; }
 .m-highlights { list-style: none; }
 .m-highlights li { font-size: 14px; font-weight: 600; line-height: 1.6; opacity: 0.85; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -996,20 +1044,43 @@ async function exportEdition() {
       fillEl.style.width = Math.round((step / totalSteps) * 100) + '%';
     }
 
-    // Optimise cover image
+    // Optimise cover media
     if (state.cover.imageSrc) {
-      progress('Optimising cover image...');
-      try {
-        const blob = await optimiseImage(state.cover.imageSrc, 1080, 0.85);
-        assets.file('cover.jpg', blob);
-        assetMap['cover'] = 'assets/cover.jpg';
-      } catch (e) {
-        console.error('Cover optimisation failed:', e);
-        // Fallback: use original
+      progress('Processing cover media...');
+      if (state.cover.mediaType === 'video') {
+        // Video: include as-is (Phase 2 will add transcoding)
         const base64 = state.cover.imageSrc.split(',')[1];
-        assets.file('cover.jpg', base64, {base64: true});
-        assetMap['cover'] = 'assets/cover.jpg';
+        const ext = state.cover.imageSrc.match(/data:video\/(\w+)/)?.[1] || 'mp4';
+        assets.file('cover.' + ext, base64, {base64: true});
+        assetMap['cover'] = 'assets/cover.' + ext;
+      } else {
+        try {
+          const blob = await optimiseImage(state.cover.imageSrc, 1080, 0.85);
+          assets.file('cover.jpg', blob);
+          assetMap['cover'] = 'assets/cover.jpg';
+        } catch (e) {
+          console.error('Cover optimisation failed:', e);
+          const base64 = state.cover.imageSrc.split(',')[1];
+          assets.file('cover.jpg', base64, {base64: true});
+          assetMap['cover'] = 'assets/cover.jpg';
+        }
       }
+    }
+
+    // Include logo PNG
+    try {
+      const logoPath = state.logoVariant === 'black'
+        ? '../template/MALLEABLE-Logo-bl.png'
+        : '../template/MALLEABLE-Logo-wh.png';
+      const logoResp = await fetch(logoPath);
+      if (logoResp.ok) {
+        const logoBlob = await logoResp.blob();
+        const logoName = state.logoVariant === 'black' ? 'logo-bl.png' : 'logo-wh.png';
+        assets.file(logoName, logoBlob);
+        assetMap['logo'] = 'assets/' + logoName;
+      }
+    } catch (e) {
+      console.warn('Logo fetch failed, will use text fallback:', e);
     }
 
     // Optimise page images
@@ -1069,15 +1140,19 @@ function generateExportHTML(assetMap) {
 
   // Cover
   const coverSrc = assetMap['cover'] || '';
+  const isVideo = state.cover.mediaType === 'video';
   const coverBg = coverSrc
-    ? `<div class="m-bg"><img src="${coverSrc}" alt=""></div>`
+    ? (isVideo
+      ? `<div class="m-bg"><video src="${coverSrc}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`
+      : `<div class="m-bg"><img src="${coverSrc}" alt=""></div>`)
     : `<div class="m-bg"><div style="width:100%;height:100%;background:#333"></div></div>`;
-  const hlItems = state.cover.highlights.filter(h => h).map(h => `<li>${esc(h)}</li>`).join('');
+  const hlItems = state.cover.highlights.filter(h => h).map(h => `<li style="font-size:${state.cover.highlightSize || 14}px">${esc(h)}</li>`).join('');
+  const logoAsset = assetMap['logo'] || '';
 
   pagesHTML += `
     <div class="m-page m-cover active">
       ${coverBg}
-      <div class="m-cover-logo m-cover-logo--${esc(state.logoVariant)}"><span>MALLEABLE</span></div>
+      <div class="m-cover-logo"><img src="${logoAsset}" alt="MALLEABLE"></div>
       <div class="m-content m-content--img">
         ${hlItems ? `<ul class="m-highlights">${hlItems}</ul>` : ''}
         <div class="m-cover-meta"><span>Edition ${esc(state.edition)}</span><span>${esc(state.date)}</span></div>
@@ -1177,19 +1252,33 @@ async function exportCoverImage() {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Draw background image
-  const img = new Image();
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = reject;
-    img.src = state.cover.imageSrc;
-  });
-
-  // Cover fill
-  const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
-  const sw = img.naturalWidth * scale;
-  const sh = img.naturalHeight * scale;
-  ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
+  // Draw background (handle both image and video)
+  if (state.cover.mediaType === 'video') {
+    // Extract first frame from video
+    const vid = document.createElement('video');
+    vid.muted = true;
+    vid.playsInline = true;
+    await new Promise((resolve, reject) => {
+      vid.onloadeddata = resolve;
+      vid.onerror = reject;
+      vid.src = state.cover.imageSrc;
+    });
+    const scale = Math.max(W / vid.videoWidth, H / vid.videoHeight);
+    const sw = vid.videoWidth * scale;
+    const sh = vid.videoHeight * scale;
+    ctx.drawImage(vid, (W - sw) / 2, (H - sh) / 2, sw, sh);
+  } else {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = state.cover.imageSrc;
+    });
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const sw = img.naturalWidth * scale;
+    const sh = img.naturalHeight * scale;
+    ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
+  }
 
   // Frame border
   const borderW = Math.round(14 * (W / 390));
@@ -1215,35 +1304,51 @@ async function exportCoverImage() {
   ctx.font = '500 ' + Math.round(11 * W / 390) + 'px Inter, sans-serif';
   const metaY = H - Math.round(30 * W / 390);
   ctx.textAlign = 'left';
-  ctx.fillText(`Edition ${state.edition}`, Math.round(30 * W / 390), metaY);
+  ctx.fillText('Edition ' + state.edition, Math.round(30 * W / 390), metaY);
   ctx.textAlign = 'right';
   ctx.fillText(state.date, W - Math.round(30 * W / 390), metaY);
   ctx.textAlign = 'left';
 
-  // Highlights - above edition meta
+  // Highlights - above edition meta, using variable size
+  const hlSize = state.cover.highlightSize || 14;
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.font = '400 ' + Math.round(15 * W / 390) + 'px Inter, sans-serif';
+  ctx.font = '600 ' + Math.round(hlSize * W / 390) + 'px Inter, sans-serif';
   const hlBaseY = metaY - Math.round(24 * W / 390);
   const visibleHL = state.cover.highlights.filter(h => h);
-  visibleHL.reverse().forEach((h, i) => {
-    ctx.fillText(h, Math.round(30 * W / 390), hlBaseY - i * Math.round(26 * W / 390));
+  const hlCopy = [...visibleHL].reverse();
+  hlCopy.forEach((h, i) => {
+    ctx.fillText(h, Math.round(30 * W / 390), hlBaseY - i * Math.round((hlSize + 10) * W / 390));
   });
 
-  // MALLEABLE logo - bigger, centred at top
-  ctx.fillStyle = state.logoVariant === 'white' ? '#fff' : '#000';
-  ctx.font = '700 ' + Math.round(28 * W / 390) + 'px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.letterSpacing = '0.22em';
-  ctx.fillText('MALLEABLE', W / 2, Math.round(58 * W / 390));
-  ctx.textAlign = 'left';
-  ctx.letterSpacing = '0';
+  // MALLEABLE logo image centred at top
+  try {
+    const logoPath = state.logoVariant === 'black'
+      ? '../template/MALLEABLE-Logo-bl.png'
+      : '../template/MALLEABLE-Logo-wh.png';
+    const logoImg = new Image();
+    await new Promise((resolve, reject) => {
+      logoImg.onload = resolve;
+      logoImg.onerror = reject;
+      logoImg.src = logoPath;
+    });
+    const logoH = Math.round(28 * W / 390);
+    const logoW = logoH * (logoImg.naturalWidth / logoImg.naturalHeight);
+    ctx.drawImage(logoImg, (W - logoW) / 2, Math.round(32 * W / 390), logoW, logoH);
+  } catch (e) {
+    // Fallback to text if logo image not available
+    ctx.fillStyle = state.logoVariant === 'white' ? '#fff' : '#000';
+    ctx.font = '700 ' + Math.round(22 * W / 390) + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('MALLEABLE', W / 2, Math.round(58 * W / 390));
+    ctx.textAlign = 'left';
+  }
 
   // Export
   canvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `malleable-${state.edition}-cover.jpg`;
+    a.download = 'malleable-' + state.edition + '-cover.jpg';
     a.click();
     URL.revokeObjectURL(url);
     toast('Cover image downloaded');
@@ -1269,7 +1374,10 @@ async function importJSON(input) {
     const text = await input.files[0].text();
     const data = JSON.parse(text);
     if (data.edition !== undefined && data.pages !== undefined) {
-      state = { ...defaultState(), ...data };
+      const defaults = defaultState();
+      state = { ...defaults, ...data };
+      state.cover = { ...defaults.cover, ...(data.cover || {}) };
+      state.close = { ...defaults.close, ...(data.close || {}) };
       editingPageId = null;
       scheduleSave();
       renderAll();
@@ -1329,7 +1437,11 @@ function renderAll() {
 async function init() {
   const saved = await loadDraft();
   if (saved) {
-    state = { ...defaultState(), ...saved };
+    const defaults = defaultState();
+    state = { ...defaults, ...saved };
+    // Deep merge cover to ensure new fields exist
+    state.cover = { ...defaults.cover, ...(saved.cover || {}) };
+    state.close = { ...defaults.close, ...(saved.close || {}) };
     document.getElementById('status-text').textContent = 'Draft loaded';
   }
   renderAll();
