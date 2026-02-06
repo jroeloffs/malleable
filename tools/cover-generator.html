@@ -736,6 +736,10 @@
     // Logo paths
     const logoWhitePath = '../template/MALLEABLE-Logo-wh.png';
     const logoBlackPath = '../template/MALLEABLE-Logo-bl.png';
+
+    // Track ObjectURLs for cleanup to prevent memory leaks
+    let currentMediaURL = null;
+    let currentLogoURL = null;
     
     // ============================================
     // MEDIA
@@ -744,10 +748,16 @@
     document.getElementById('media-input').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
+
+      // Revoke previous URL to prevent memory leak
+      if (currentMediaURL) {
+        URL.revokeObjectURL(currentMediaURL);
+      }
+
       const url = URL.createObjectURL(file);
+      currentMediaURL = url;
       placeholder.style.display = 'none';
-      
+
       if (file.type.startsWith('video/')) {
         previewImage.style.display = 'none';
         previewVideo.style.display = 'block';
@@ -758,7 +768,7 @@
         previewImage.style.display = 'block';
         previewImage.src = url;
       }
-      
+
       document.getElementById('media-btn').textContent = file.name;
       document.getElementById('media-btn').classList.add('has-file');
     });
@@ -787,14 +797,21 @@
     document.getElementById('logo-input').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
-      logoImg.src = URL.createObjectURL(file);
+
+      // Revoke previous custom logo URL to prevent memory leak
+      if (currentLogoURL) {
+        URL.revokeObjectURL(currentLogoURL);
+      }
+
+      const url = URL.createObjectURL(file);
+      currentLogoURL = url;
+      logoImg.src = url;
       logoImg.style.display = 'block';
       logoPlaceholder.style.display = 'none';
-      
+
       document.getElementById('logo-btn').textContent = file.name;
       document.getElementById('logo-btn').classList.add('has-file');
-      
+
       // Clear button selection
       document.querySelectorAll('.logo-btn').forEach(btn => btn.classList.remove('active'));
     });
