@@ -1,191 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Malleable — Edition 01</title>
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="Malleable — Edition 01">
-  <meta property="og:description" content="Things made, found, and thought about.">
-  <meta property="og:image" content="https://jacoroeloffs.com/malleable/editions/edition-01/assets/cover-composed.jpg">
-  <meta property="og:type" content="article">
-  <meta property="og:url" content="https://jacoroeloffs.com/malleable/editions/edition-01/">
-  
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Malleable — Edition 01">
-  <meta name="twitter:description" content="Things made, found, and thought about.">
-  <meta name="twitter:image" content="https://jacoroeloffs.com/malleable/editions/edition-01/assets/cover-composed.jpg">
-
-  <!-- SEO -->
-  <meta name="description" content="Malleable Edition 01 — A quarterly micro-magazine featuring things made, found, and thought about.">
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="../../template/malleable.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Malleable - Edition 01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; background: #000; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.m-frame { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.m-pages { position: relative; width: 100%; height: 100%; }
+.m-page { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; overflow: hidden; }
+.m-page.active { opacity: 1; visibility: visible; z-index: 2; }
+.m-page::before { content: ''; position: absolute; inset: 0; border: 14px solid var(--frame-colour, #0E394F); opacity: var(--frame-opacity, 0.9); z-index: 10; pointer-events: none; }
+.m-bg { position: absolute; inset: 0; z-index: 0; }
+.m-bg img, .m-bg video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.m-content { position: relative; z-index: 5; padding: 28px 30px 40px; }
+.m-content--img::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 65%; background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, transparent 100%); z-index: -1; pointer-events: none; }
+.m-content--img { color: #fff; }
+.m-content--clr { color: #111; }
+.m-section { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; opacity: 0.7; }
+.m-title { font-size: 24px; font-weight: 700; line-height: 1.2; margin-bottom: 8px; }
+.m-text { font-size: 15px; line-height: 1.55; opacity: 0.88; max-width: 340px; }
+.m-link { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 600; text-decoration: none; color: inherit; opacity: 0.7; border-bottom: 1px solid currentColor; }
+.m-cover .m-content { padding-bottom: 44px; }
+.m-cover-logo { position: absolute; top: 0; left: 0; right: 0; z-index: 12; text-align: center; padding-top: 28px; pointer-events: none; }
+.m-cover-logo img { height: var(--logo-height, 44px); width: auto; filter: drop-shadow(0 1px 6px rgba(0,0,0,0.3)); }
+.m-cover-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; opacity: 0.6; margin-bottom: 14px; }
+.m-highlights { list-style: none; }
+.m-highlights li { font-size: 14px; font-weight: 600; line-height: 1.6; opacity: 0.85; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.m-quote { justify-content: center; }
+.m-quote .m-content { padding: 60px 34px; }
+.m-quote .m-content::before { display: none; }
+.m-quote-text { font-size: 22px; font-weight: 500; line-height: 1.45; font-style: italic; margin-bottom: 16px; }
+.m-quote-author { font-size: 13px; font-weight: 600; opacity: 0.6; }
+.m-close { justify-content: center; }
+.m-close .m-content { text-align: center; padding: 60px 34px; }
+.m-close .m-content::before { display: none; }
+.m-close-msg { font-size: 20px; font-weight: 600; margin-bottom: 30px; }
+.m-close-links { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.m-close-links a { font-size: 14px; font-weight: 500; text-decoration: none; color: inherit; opacity: 0.65; border-bottom: 1px solid currentColor; }
+.m-close-meta { margin-top: 40px; font-size: 11px; opacity: 0.4; }
+.m-progress { position: absolute; top: 0; left: 0; right: 0; display: flex; gap: 4px; padding: 10px 18px 0; z-index: 20; }
+.m-bar { flex: 1; height: 2px; background: rgba(255,255,255,0.25); border-radius: 1px; }
+.m-bar.visited, .m-bar.active { background: rgba(255,255,255,0.8); }
+.m-tap { position: absolute; top: 0; bottom: 0; z-index: 15; cursor: pointer; }
+.m-tap--prev { left: 0; width: 30%; }
+.m-tap--next { right: 0; width: 70%; }
+:root { --frame-colour: #BC6C67; --frame-opacity: 0.9; }
+</style>
 </head>
 <body>
-  
-  <div class="magazine" data-edition="01" data-frame-colour="#0E394F">
-    
-    <!-- Progress bar -->
-    <div class="progress">
-      <div class="progress-bar"></div>
+<div class="m-frame">
+  <div class="m-progress"><div class="m-bar active"></div><div class="m-bar "></div><div class="m-bar "></div><div class="m-bar "></div></div>
+  <div class="m-pages">
+    <div class="m-page m-cover active">
+      <div class="m-bg"><img src="assets/cover.jpg" alt=""></div>
+      <div class="m-cover-logo"><img src="assets/logo-wh.png" alt="MALLEABLE" style="height:56px"></div>
+      <div class="m-content m-content--img">
+        <ul class="m-highlights"><li style="font-size:24px">tst 4</li><li style="font-size:24px">homer</li><li style="font-size:24px">frogs</li></ul>
+        <div class="m-cover-meta"><span>Edition 01</span><span>February 2026</span></div>
+      </div>
     </div>
-    
-    <!-- Navigation hints -->
-    <div class="nav-hint">
-      <span class="hint-left">‹</span>
-      <span class="hint-right">›</span>
-    </div>
-    
-    <!-- Pages -->
-    <div class="pages">
-      
-      <!-- ==========================================
-           COVER
-           ========================================== -->
-      <article class="page page-cover active" data-page="0">
-        <div class="frame">
-          <div class="frame-inner">
-            <div class="cover-media">
-              <!-- Video with image fallback -->
-              <video 
-                class="cover-video" 
-                src="assets/cover.mp4" 
-                poster="assets/cover-still.jpg"
-                autoplay 
-                muted 
-                loop 
-                playsinline
-              ></video>
-            </div>
-            <div class="cover-overlay">
-              <div class="masthead">
-                <!-- White logo for dark cover backgrounds -->
-                <img src="../../template/MALLEABLE-Logo-wh.png" alt="MALLEABLE">
-              </div>
-              <div class="cover-spacer"></div>
-              <div class="cover-articles">
-                <div class="cover-article">Made: Emmaus Cross</div>
-                <div class="cover-article">Found: Structural Colour</div>
-                <div class="cover-article">Thinking: The Malleable Mind</div>
-              </div>
-              <div class="cover-meta">
-                <span class="edition-number">Edition 01</span>
-                <span class="edition-date">February 2026</span>
-              </div>
-            </div>
+        <div class="m-page">
+          <div class="m-bg"><img src="assets/page-01.jpg" alt=""></div>
+          <div class="m-content m-content--img">
+            <div class="m-section">made</div>
+            <div class="m-title">test</div>
+            <div class="m-text">test</div>
+            <a class="m-link" href="[link" target="_blank">Source →</a>
           </div>
         </div>
-      </article>
-      
-      <!-- ==========================================
-           PAGE 1: MADE - Intro
-           ========================================== -->
-      <article class="page page-content" data-page="1">
-        <div class="frame">
-          <div class="frame-inner">
-            <span class="section-label">Made</span>
-            <figure class="page-image">
-              <img src="assets/page-01.jpg" alt="Emmaus Cross installation">
-            </figure>
-            <div class="page-text">
-              <h2>Emmaus Cross</h2>
-              <p>Third commission for the same school. The cross sits on the facade above the entrance, aligned with the path students walk every morning.</p>
-            </div>
+        <div class="m-page m-quote">
+          <div class="m-bg"><div style="width:100%;height:100%;background:#ffffff"></div></div>
+          <div class="m-content m-content--clr">
+            <div class="m-section">Thinking</div>
+            <div class="m-quote-text">"hers"</div>
+            <div class="m-quote-author">- homer</div>
           </div>
         </div>
-      </article>
-      
-      <!-- ==========================================
-           PAGE 2: MADE - Detail
-           ========================================== -->
-      <article class="page page-content" data-page="2">
-        <div class="frame">
-          <div class="frame-inner">
-            <figure class="page-image full">
-              <img src="assets/page-02.jpg" alt="Emmaus Cross detail">
-            </figure>
-            <div class="page-caption">
-              <p>Anodised aluminium and glass. At night, a concealed LED strip edge-lights the glass.</p>
-            </div>
-          </div>
+    <div class="m-page m-close">
+      <div class="m-bg"><div style="width:100%;height:100%;background:#fafafa"></div></div>
+      <div class="m-content m-content--clr">
+        <div class="m-close-msg">See you next quarter.</div>
+        <div class="m-close-links">
+          <a href="https://jacoroeloffs.com/#/portal/signup" target="_blank">Get future editions</a>
         </div>
-      </article>
-      
-      <!-- ==========================================
-           PAGE 3: FOUND - Intro
-           ========================================== -->
-      <article class="page page-content" data-page="3">
-        <div class="frame">
-          <div class="frame-inner">
-            <span class="section-label">Found</span>
-            <figure class="page-image">
-              <img src="assets/page-03.jpg" alt="Structural colour example">
-            </figure>
-            <div class="page-text">
-              <h2>Structural colour</h2>
-              <p>Butterfly wings create colour without pigment. Nano-scale structures interfere with light, producing iridescence that never fades.</p>
-            </div>
-          </div>
-        </div>
-      </article>
-      
-      <!-- ==========================================
-           PAGE 4: FOUND - Continued
-           ========================================== -->
-      <article class="page page-content" data-page="4">
-        <div class="frame">
-          <div class="frame-inner page-text-full">
-            <div class="page-text centred">
-              <p>Researchers at UCF have replicated this effect on aluminium. Paint that never fades because there's no pigment to degrade.</p>
-              <p>I've been watching this for years. Waiting for it to become available at architectural scale.</p>
-            </div>
-          </div>
-        </div>
-      </article>
-      
-      <!-- ==========================================
-           PAGE 5: THINKING - Quote
-           ========================================== -->
-      <article class="page page-content" data-page="5">
-        <div class="frame">
-          <div class="frame-inner">
-            <span class="section-label">Thinking</span>
-            <blockquote class="page-quote">
-              <p>"Some of us can't help but see the world as malleable. It's almost as if we have to develop a reality distortion field as a coping mechanism."</p>
-              <cite>Srinivas Rao</cite>
-            </blockquote>
-          </div>
-        </div>
-      </article>
-      
-      <!-- ==========================================
-           PAGE 6: CLOSE
-           ========================================== -->
-      <article class="page page-close" data-page="6">
-        <div class="frame">
-          <div class="frame-inner">
-            <div class="close-content">
-              <p class="close-message">See you next quarter.</p>
-              <p class="close-link">
-                <a href="https://jacoroeloffs.com">jacoroeloffs.com</a>
-              </p>
-              <p class="edition-info">Malleable Edition 01 — February 2026</p>
-            </div>
-          </div>
-        </div>
-      </article>
-      
-    </div>
-    
-  </div>
-  
-  <script src="../../template/malleable.js"></script>
+        <div class="m-close-meta">Edition 01 / February 2026 / jacoroeloffs.com</div>
+      </div>
+    </div></div>
+  <div class="m-tap m-tap--prev"></div>
+  <div class="m-tap m-tap--next"></div>
+</div>
+<script>(function(){let c=0;const p=document.querySelectorAll('.m-page'),b=document.querySelectorAll('.m-bar'),t=p.length;function s(i){if(i<0||i>=t)return;p[c].classList.remove('active');c=i;p[c].classList.add('active');b.forEach((x,j)=>{x.classList.toggle('visited',j<c);x.classList.toggle('active',j===c)});p.forEach((x,j)=>{const v=x.querySelector('video');if(v){j===c?v.play().catch(()=>{}):v.pause()}});}document.querySelector('.m-tap--next')?.addEventListener('click',()=>s(c+1));document.querySelector('.m-tap--prev')?.addEventListener('click',()=>s(c-1));document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();s(c+1)}if(e.key==='ArrowLeft'){e.preventDefault();s(c-1)}});let sx=0;document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});document.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>50){d<0?s(c+1):s(c-1)}});s(0)})();</script>
 </body>
 </html>
